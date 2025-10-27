@@ -93,7 +93,7 @@ deps =
     sphinx74: sphinx==7.4.*
     sphinx82: sphinx==8.2.*
 commands =
-    pytest -n auto --tb=long tests/
+    pytest -n auto --tb=long tests/ -vv
 
 [testenv:docs]
 description = Build documentation with Sphinx
