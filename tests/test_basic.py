@@ -162,6 +162,7 @@ def test_hash_overwrite(
     warnings2 = (
         strip_colors(app2._warning.getvalue())
         .replace(str(app2.srcdir) + os.path.sep, "<srcdir>/")
+        .replace("\\", "/")  # Normalize Windows backslashes
         .splitlines()
     )
     assert warnings2 == snapshot
@@ -236,6 +237,7 @@ def test_hash_not_overwrite(
     warnings2 = (
         strip_colors(app2._warning.getvalue())
         .replace(str(app2.srcdir) + os.path.sep, "<srcdir>/")
+        .replace("\\", "/")  # Normalize Windows backslashes
         .splitlines()
     )
     assert warnings2 == snapshot
