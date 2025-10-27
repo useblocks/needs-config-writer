@@ -164,6 +164,10 @@ def write_ubproject_file(app: Sphinx, exception):
     output_path_str = output_path_str.replace("${srcdir}", str(app.srcdir))
     outpath = Path(output_path_str)
 
+    # Make relative paths relative to confdir (where conf.py is located)
+    if not outpath.is_absolute():
+        outpath = Path(app.confdir) / outpath
+
     # Conditionally include hash in output
     if app.config.needscfg_use_hash:
         needs_data = tomli_w.dumps({"needs": sorted_attributes})
