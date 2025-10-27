@@ -29,10 +29,10 @@ classifiers = [
   "Framework :: Sphinx :: Extension",
 ]
 dependencies = [
-    "sphinx>=4.0",
-    "sphinx-needs>4.2.0", # needs_from_toml was introduced in 4.1.0 and 4.2.0 dropped Python 3.8
-    "tomli>=2.3.0",
-    "tomli-w>=1.2.0",
+  "sphinx>=4.0",
+  "sphinx-needs>4.2.0", # needs_from_toml was introduced in 4.1.0 and 4.2.0 dropped Python 3.8
+  "tomli>=2.3.0",
+  "tomli-w>=1.2.0",
 ]
 
 [dependency-groups]
@@ -46,10 +46,7 @@ dev = [
   "tox-uv>=1.0",
   "tox>=4.0",
 ]
-docs = [
-    "furo>=2025.9.25",
-    "sphinx>=4.0",
-]
+docs = ["furo>=2025.9.25", "sphinx>=4.0"]
 
 [tool.ruff]
 target-version = "py310"
@@ -102,18 +99,14 @@ commands =
 [testenv:docs]
 description = Build documentation with Sphinx
 basepython = python3.12
-deps =
-    sphinx>=7.0
-extras = docs
+groups = docs
 commands =
     sphinx-build -W -a -E -j auto -b html docs/ docs/_build
 
 [testenv:linkcheck]
 description = Check documentation links
 basepython = python3.12
-deps =
-    sphinx>=7.0
-extras = docs
+groups = docs
 commands =
     sphinx-build -b linkcheck docs/ docs/_build/linkcheck
 """
