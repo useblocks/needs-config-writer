@@ -30,7 +30,8 @@ classifiers = [
 ]
 dependencies = [
     "sphinx>=4.0",
-    "sphinx-needs>4.2.0",  # needs_from_toml was introduced in 4.1.0 and 4.2.0 dropped Python 3.8
+    "sphinx-needs>4.2.0", # needs_from_toml was introduced in 4.1.0 and 4.2.0 dropped Python 3.8
+    "tomli>=2.3.0",
     "tomli-w>=1.2.0",
 ]
 

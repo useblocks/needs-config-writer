@@ -3,6 +3,7 @@ from pathlib import Path, PosixPath
 from typing import Any
 
 from sphinx.application import Sphinx
+import tomli
 import tomli_w
 
 from needs_config_writer.logging import get_logger, log_warning
@@ -156,8 +157,6 @@ def write_ubproject_file(app: Sphinx, exception):
     # Calculate SHA1 hash of the needs configuration
     # Sort all data structures to ensure reproducible hash
     sorted_attributes = sort_for_reproducibility(need_attributes)
-    needs_data = tomli_w.dumps({"needs": sorted_attributes})
-    needs_hash = hashlib.sha1(needs_data.encode("utf-8")).hexdigest()
 
     # Resolve output path with template substitution
     output_path_template = app.config.needscfg_outpath
@@ -165,20 +164,64 @@ def write_ubproject_file(app: Sphinx, exception):
     output_path_str = output_path_str.replace("${srcdir}", str(app.srcdir))
     outpath = Path(output_path_str)
 
-    # Ensure parent directory exists
-    outpath.parent.mkdir(parents=True, exist_ok=True)
+    # Conditionally include hash in output
+    if app.config.needscfg_use_hash:
+        needs_data = tomli_w.dumps({"needs": sorted_attributes})
+        needs_hash = hashlib.sha1(needs_data.encode("utf-8")).hexdigest()
+        data = tomli_w.dumps(
+            {"meta": {"needs_hash": needs_hash}, "needs": sorted_attributes}
+        )
+    else:
+        data = tomli_w.dumps({"needs": sorted_attributes})
+        needs_hash = None
 
-    data = tomli_w.dumps(
-        {"meta": {"needs_hash": needs_hash}, "needs": sorted_attributes}
-    )
-    outpath.write_text(data)
+    if outpath.exists():
+        existing_content = outpath.read_text("utf8")
+        try:
+            existing_data = tomli.loads(existing_content)
+            existing_hash = existing_data.get("meta", {}).get("needs_hash")
+        except tomli.TOMLDecodeError:
+            existing_hash = None
+
+        hash_matches = (
+            existing_hash == needs_hash if (existing_hash and needs_hash) else False
+        )
+        if app.config.needscfg_use_hash and not hash_matches:
+            log_warning(
+                LOGGER,
+                f"Hash of existing file '{outpath}' does not match new value (old: {existing_hash}, new: {needs_hash})",
+                "hash_mismatch",
+                location=None,
+            )
+
+        if not hash_matches and app.config.needscfg_overwrite:
+            outpath.write_text(data)
+            LOGGER.info(
+                f"Updated needs configuration written to '{outpath}'",
+            )
+
+        if hash_matches:
+            LOGGER.info(
+                f"Needs configuration unchanged - not rewriting '{outpath}'",
+                type="ubproject",
+            )
+    else:
+        # Ensure parent directory exists
+        outpath.parent.mkdir(parents=True, exist_ok=True)
+        outpath.write_text(data)
 
 
 def setup(app: Sphinx):
     """Configure Sphinx extension."""
 
-    app.add_config_value("needscfg_write_hash", True, "html", types=[bool])
-    app.add_config_value("needscfg_check_hash", True, "html", types=[bool])
+    app.add_config_value(
+        "needscfg_overwrite",
+        False,
+        "html",
+        types=[bool],
+        description="Whether to update existing ubproject.toml files.",
+    )
+    app.add_config_value("needscfg_use_hash", True, "html", types=[bool])
     app.add_config_value(
         "needscfg_outpath",
         "${outdir}/ubproject.toml",
