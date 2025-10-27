@@ -23,7 +23,6 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: 3.13",
-  "Programming Language :: Python :: 3.14",
   "Topic :: Documentation",
   "Topic :: Utilities",
   "Framework :: Sphinx :: Extension",
@@ -79,7 +78,7 @@ force-sort-within-sections = true
 legacy_tox_ini = """
 [tox]
 env_list =
-    py{310,311,312,313,314}-sphinx{74,82}
+    py{310,311,312,313}-sphinx{74,82}
     docs
     linkcheck
 requires =

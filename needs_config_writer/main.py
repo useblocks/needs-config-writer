@@ -195,7 +195,7 @@ def write_ubproject_file(app: Sphinx, exception):
             )
 
         if not hash_matches and app.config.needscfg_overwrite:
-            outpath.write_text(data)
+            outpath.write_text(data, encoding="utf-8")
             LOGGER.info(
                 f"Updated needs configuration written to '{outpath}'",
             )
@@ -208,7 +208,7 @@ def write_ubproject_file(app: Sphinx, exception):
     else:
         # Ensure parent directory exists
         outpath.parent.mkdir(parents=True, exist_ok=True)
-        outpath.write_text(data)
+        outpath.write_text(data, encoding="utf-8")
 
 
 def setup(app: Sphinx):
