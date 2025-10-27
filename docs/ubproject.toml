@@ -1,0 +1,7 @@
+"$schema" = "https://ubcode.useblocks.com/ubproject.schema.json"
+
+[rst_lint]
+ignore = ["block.title_line"]
+
+[needs]
+id_required = true

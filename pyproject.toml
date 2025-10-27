@@ -1,0 +1,119 @@
+[build-system]
+requires = ["flit_core >=3.4,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "needs-config-writer"
+version = "0.1.0"
+description = "Sphinx extension to write Sphinx-Needs config to ubproject.toml"
+readme = "README.rst"
+urls.Repository = "https://github.com/useblocks/needs-config-writer"
+urls.Documentation = "https://needs-config-writer.useblocks.com"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [{ name = "team useblocks", email = "info@useblocks.com" }]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Documentation",
+  "Topic :: Utilities",
+  "Framework :: Sphinx :: Extension",
+]
+dependencies = [
+    "sphinx>=4.0",
+    "sphinx-needs>4.2.0",  # needs_from_toml was introduced in 4.1.0 and 4.2.0 dropped Python 3.8
+    "tomli-w>=1.2.0",
+]
+
+[dependency-groups]
+dev = [
+  "syrupy>=5.0.0",
+  "pre-commit>=3.5",
+  "pytest>=7.0",
+  "pytest-xdist>=3.0",
+  "tox>=4.0",
+  "tox-uv>=1.0",
+  "ruff>=0.4.0",
+]
+docs = [
+    "furo>=2025.9.25",
+    "sphinx>=4.0",
+]
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+extend-select = [
+  "B",   # flake8-bugbear
+  "C4",  # flake8-comprehensions
+  "F",   # pyflakes (includes unused imports)
+  "I",   # isort
+  "ICN", # flake8-import-conventions
+  "ISC", # flake8-implicit-str-concat
+  "N",   # pep8-naming
+  "RUF", # Ruff-specific rules
+  "SIM", # flake8-simplify
+  "UP",  # pyupgrade
+]
+extend-ignore = ["B904", "ISC001", "ICN001", "N818", "RUF012"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["sphinxcontrib"]
+force-sort-within-sections = true
+
+[tool.tox]
+# To use tox, see https://tox.readthedocs.io
+# $ pipx install tox
+# it is suggested to use with https://github.com/tox-dev/tox-uv or https://github.com/tox-dev/tox-conda
+# $ pipx inject tox tox-uv
+
+legacy_tox_ini = """
+[tox]
+env_list =
+    py{310,311,312,313,314}-sphinx{74,82}
+    docs
+    linkcheck
+requires =
+    tox>=4
+    tox-uv>=1.0
+
+[testenv]
+runner = uv-venv-runner
+description = Run tests with pytest
+deps =
+    pytest>=7.0
+    pytest-xdist>=3.0
+    sphinx74: sphinx==7.4.*
+    sphinx82: sphinx==8.2.*
+extras = docs
+commands =
+    pytest -n auto --tb=long tests/
+
+[testenv:docs]
+description = Build documentation with Sphinx
+basepython = python3.12
+deps =
+    sphinx>=7.0
+extras = docs
+commands =
+    sphinx-build -W -a -E -j auto -b html docs/ docs/_build
+
+[testenv:linkcheck]
+description = Check documentation links
+basepython = python3.12
+deps =
+    sphinx>=7.0
+extras = docs
+commands =
+    sphinx-build -b linkcheck docs/ docs/_build/linkcheck
+"""
