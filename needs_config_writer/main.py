@@ -304,8 +304,8 @@ def write_ubproject_file(app: Sphinx, config: Config):
                 unified_diff(
                     existing_content.splitlines(keepends=True),
                     new_content.splitlines(keepends=True),
-                    fromfile=f"{outpath} (existing)",
-                    tofile=f"{outpath} (new)",
+                    fromfile="existing",
+                    tofile="new",
                     lineterm="",
                 )
             )
