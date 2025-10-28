@@ -3,12 +3,35 @@ from typing import Any
 
 from sphinx.application import Sphinx
 from sphinx.config import Config
+import tomli
 import tomli_w
 
 from needs_config_writer import __version__
 from needs_config_writer.logging import get_logger, log_warning
 
 LOGGER = get_logger(__name__)
+
+
+def resolve_path_template(path_template: str, app: Sphinx) -> Path:
+    """
+    Resolve a path template with ${outdir} and ${srcdir} variables.
+
+    Args:
+        path_template: Path string that may contain ${outdir} or ${srcdir}
+        app: Sphinx application instance
+
+    Returns:
+        Resolved Path object (absolute if relative to confdir)
+    """
+    path_str = path_template.replace("${outdir}", str(app.outdir))
+    path_str = path_str.replace("${srcdir}", str(app.srcdir))
+    path = Path(path_str)
+
+    # Make relative paths relative to confdir (where conf.py is located)
+    if not path.is_absolute():
+        path = Path(app.confdir) / path
+
+    return path
 
 
 def write_ubproject_file(app: Sphinx, config: Config):
@@ -179,21 +202,85 @@ def write_ubproject_file(app: Sphinx, config: Config):
                     if attribute in raw_needs_config:
                         need_attributes[config_name] = safe_value
 
-    # Sort all data structures to ensure reproducible serialization
-    sorted_attributes = sort_for_reproducibility(need_attributes)
+    # Collect additional root-level tables/keys from merged TOML files
+    additional_root_data = {}
+
+    # Merge TOML files if configured
+    if config.needscfg_merge_toml_files:
+        for toml_path_template in config.needscfg_merge_toml_files:
+            toml_path = resolve_path_template(toml_path_template, app)
+
+            if not toml_path.exists():
+                log_warning(
+                    LOGGER,
+                    f"TOML file to merge not found: '{toml_path}' (from template '{toml_path_template}')",
+                    "merge_failed",
+                    location=None,
+                )
+                continue
+
+            try:
+                with open(toml_path, "rb") as f:
+                    merge_data = tomli.load(f)
+            except (OSError, PermissionError) as e:
+                log_warning(
+                    LOGGER,
+                    f"Failed to read TOML file '{toml_path}': {e}",
+                    "merge_failed",
+                    location=None,
+                )
+                continue
+            except tomli.TOMLDecodeError as e:
+                log_warning(
+                    LOGGER,
+                    f"Failed to parse TOML file '{toml_path}': {e}",
+                    "merge_failed",
+                    location=None,
+                )
+                continue
+
+            # Shallow merge all root-level keys from the file
+            # If file has a [needs] table, merge it into our needs attributes
+            # All other root-level keys/tables are collected separately
+            for key, value in merge_data.items():
+                if key == "needs":
+                    # Shallow merge into the needs attributes (before sorting)
+                    need_attributes.update(value)
+                else:
+                    # Collect root-level keys and tables
+                    additional_root_data[key] = value
+
+            LOGGER.info(
+                f"Merged TOML configuration from '{toml_path}'",
+                type="ubproject",
+                subtype="merge",
+            )
+
+    # Sort the needs table data with special handling for reproducibility
+    sorted_needs = sort_for_reproducibility(need_attributes)
+
+    # Build the final TOML structure with all root-level keys sorted
+    final_toml_data = {}
+
+    # First add the needs table
+    final_toml_data["needs"] = sorted_needs
+
+    # Add additional root-level data
+    for key, value in additional_root_data.items():
+        # Sort dictionaries in the additional data
+        if isinstance(value, dict):
+            final_toml_data[key] = dict(sorted(value.items()))
+        else:
+            final_toml_data[key] = value
+
+    # Sort all root-level keys (including 'needs') alphabetically
+    final_toml_data = dict(sorted(final_toml_data.items()))
 
     # Resolve output path with template substitution
-    output_path_template = config.needscfg_outpath
-    output_path_str = output_path_template.replace("${outdir}", str(app.outdir))
-    output_path_str = output_path_str.replace("${srcdir}", str(app.srcdir))
-    outpath = Path(output_path_str)
-
-    # Make relative paths relative to confdir (where conf.py is located)
-    if not outpath.is_absolute():
-        outpath = Path(app.confdir) / outpath
+    outpath = resolve_path_template(config.needscfg_outpath, app)
 
     # Generate new content
-    new_content = tomli_w.dumps({"needs": sorted_attributes})
+    new_content = tomli_w.dumps(final_toml_data)
 
     # Add header if configured
     if config.needscfg_add_header:
@@ -289,6 +376,13 @@ def setup(app: Sphinx):
         "html",
         types=[list],
         description="List of needs_* variable names to exclude from writing (resolved configs).",
+    )
+    app.add_config_value(
+        "needscfg_merge_toml_files",
+        [],
+        "html",
+        types=[list],
+        description="List of TOML file paths to shallow-merge into the output configuration.",
     )
 
     # run this late

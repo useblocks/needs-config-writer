@@ -12,7 +12,12 @@ def get_logger(name: str) -> SphinxLoggerAdapter:
     return logging.getLogger(name)
 
 
-WarningSubTypes = Literal["path_conversion", "unsupported_type", "content_diff"]
+WarningSubTypes = Literal[
+    "path_conversion",
+    "unsupported_type",
+    "content_diff",
+    "merge_failed",
+]
 
 
 def log_warning(

@@ -863,3 +863,347 @@ def test_exclude_vars_empty(
     assert 'from_toml_table = "needs"' in ubproject_content
 
     app.cleanup()
+
+
+def test_merge_toml_basic(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """Test basic TOML file merging with [needs] table."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_add_header = False
+        needscfg_merge_toml_files = ["merge.toml"]
+        needs_types = [
+            dict(directive="req", title="Requirement", prefix="R_"),
+        ]
+        """
+    )
+    merge_toml = textwrap.dedent(
+        """
+        [needs]
+        project_version = "1.2.3"
+        custom_field = "custom_value"
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    # Write the merge TOML file manually
+    merge_path = Path(tmpdir) / "merge.toml"
+    merge_path.write_text(merge_toml, encoding="utf-8")
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+
+    # Verify original config is present
+    assert 'directive = "req"' in ubproject_content
+    assert "Requirement" in ubproject_content
+
+    # Verify merged data is present
+    assert 'project_version = "1.2.3"' in ubproject_content
+    assert 'custom_field = "custom_value"' in ubproject_content
+
+    app.cleanup()
+
+
+def test_merge_toml_without_needs_table(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """Test TOML file merging without [needs] table."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_add_header = False
+        needscfg_merge_toml_files = ["merge.toml"]
+        needs_types = [
+            dict(directive="req", title="Requirement", prefix="R_"),
+        ]
+        """
+    )
+    merge_toml = textwrap.dedent(
+        """
+        project_version = "2.0.0"
+        build_info = "test-build"
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    # Write the merge TOML file
+    merge_path = Path(tmpdir) / "merge.toml"
+    merge_path.write_text(merge_toml, encoding="utf-8")
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+
+    # Verify merged data is present (merged from root level)
+    assert 'project_version = "2.0.0"' in ubproject_content
+    assert 'build_info = "test-build"' in ubproject_content
+
+    app.cleanup()
+
+
+def test_merge_toml_override(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """Test that merged TOML values override conf.py values."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_add_header = False
+        needscfg_merge_toml_files = ["merge.toml"]
+        needs_id_regex = "^[A-Z]_.*"  # This should be overridden
+        """
+    )
+    merge_toml = textwrap.dedent(
+        """
+        [needs]
+        id_regex = "^OVERRIDE_.*"
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    # Write the merge TOML file
+    merge_path = Path(tmpdir) / "merge.toml"
+    merge_path.write_text(merge_toml, encoding="utf-8")
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+
+    # Verify the merged value overrides the original
+    assert 'id_regex = "^OVERRIDE_.*"' in ubproject_content
+    assert 'id_regex = "^[A-Z]_.*"' not in ubproject_content
+
+    app.cleanup()
+
+
+def test_merge_toml_multiple_files(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """Test merging multiple TOML files in order."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_add_header = False
+        needscfg_merge_toml_files = ["merge1.toml", "merge2.toml"]
+        needs_types = [
+            dict(directive="req", title="Requirement", prefix="R_"),
+        ]
+        """
+    )
+    merge1_toml = textwrap.dedent(
+        """
+        [needs]
+        field1 = "from_merge1"
+        field2 = "also_from_merge1"
+        """
+    )
+    merge2_toml = textwrap.dedent(
+        """
+        [needs]
+        field2 = "overridden_by_merge2"
+        field3 = "from_merge2"
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    # Write the merge TOML files
+    (Path(tmpdir) / "merge1.toml").write_text(merge1_toml, encoding="utf-8")
+    (Path(tmpdir) / "merge2.toml").write_text(merge2_toml, encoding="utf-8")
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+
+    # Verify merge order: field1 from merge1, field2 overridden by merge2, field3 from merge2
+    assert 'field1 = "from_merge1"' in ubproject_content
+    assert 'field2 = "overridden_by_merge2"' in ubproject_content
+    assert 'field2 = "also_from_merge1"' not in ubproject_content
+    assert 'field3 = "from_merge2"' in ubproject_content
+
+    app.cleanup()
+
+
+def test_merge_toml_path_templates(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """Test that ${srcdir} and ${outdir} templates work in merge paths."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_add_header = False
+        needscfg_merge_toml_files = ["${srcdir}/merge.toml"]
+        needs_types = [
+            dict(directive="req", title="Requirement", prefix="R_"),
+        ]
+        """
+    )
+    merge_toml = textwrap.dedent(
+        """
+        [needs]
+        template_test = "success"
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    # Write the merge TOML file
+    (Path(tmpdir) / "merge.toml").write_text(merge_toml, encoding="utf-8")
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+
+    # Verify the template was resolved and file was merged
+    assert 'template_test = "success"' in ubproject_content
+
+    app.cleanup()
+
+
+def test_merge_toml_missing_file_warning(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """Test that missing merge files emit a warning but don't fail the build."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_add_header = False
+        needscfg_merge_toml_files = ["nonexistent.toml"]
+        needs_types = [
+            dict(directive="req", title="Requirement", prefix="R_"),
+        ]
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+
+    # Check that a warning was emitted
+    warnings = strip_colors(app._warning.getvalue())
+    assert "TOML file to merge not found" in warnings
+    assert "nonexistent.toml" in warnings
+
+    # Build should still succeed and create the file
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+
+    app.cleanup()
