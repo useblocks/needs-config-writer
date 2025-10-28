@@ -131,9 +131,14 @@ and can directly be used with tools like |ubcode|.
    .. literalinclude:: ../tests/complex_setups/project/ubproject.toml
       :language: toml
 
-The ``extend`` keyword is only supported by |ubcode| currently, but is planned for
-Sphinx-Needs as well. That's the reason a single ubproject.toml is written from
-a full ``conf.py`` input.
+Ideally the configuration system is mostly based on TOML files.
+That would require local project configuration to refer to a shared configuration.
+While
+`sharing configuration <https://ubcode.useblocks.com/usage/ubproject.html#sharing-configuration>`__
+is already supported by |ubcode|, Sphinx-Needs does not support this yet.
+It is is a planned feature. The approach shown above therefore relies on generating a full
+configuration file from configuration given in ``conf.py`` locally and
+shared TOML configuration sources.
 
 General advice
 --------------
