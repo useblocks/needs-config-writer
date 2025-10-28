@@ -183,6 +183,62 @@ The generated header looks like this:
    Keep this enabled (``True``) to remind users that the file is auto-generated and
    manual changes will be lost on the next build.
 
+.. _`config_exclude_vars`:
+
+needscfg_exclude_vars
+---------------------
+
+**Type:** ``list[str]``
+
+**Default:** ``["needs_from_toml", "needs_from_toml_table", "needs_schema_definitions_from_json"]``
+
+Specifies which Sphinx-Needs configuration variables should be excluded from writing to
+the output file. This is typically used to exclude resolved configuration values that
+should not be duplicated in the output.
+
+The default list excludes:
+
+- ``needs_from_toml`` - Configuration loaded from TOML files
+- ``needs_from_toml_table`` - Parsed TOML table data
+- ``needs_schema_definitions_from_json`` - Schema definitions loaded from JSON
+
+**Behavior:**
+
+- Variable names in this list will be filtered out
+- Only affects variables that start with ``needs_``
+- The check is performed on the full attribute name (e.g., ``needs_from_toml``)
+
+**Examples:**
+
+.. code-block:: python
+
+   # Use default exclusions (recommended)
+   needscfg_exclude_vars = [
+       "needs_from_toml",
+       "needs_from_toml_table",
+       "needs_schema_definitions_from_json",
+   ]
+
+   # Add custom exclusions
+   needscfg_exclude_vars = [
+       "needs_from_toml",
+       "needs_from_toml_table",
+       "needs_schema_definitions_from_json",
+       "needs_custom_variable",  # Exclude a custom variable
+   ]
+
+   # Exclude only specific variables
+   needscfg_exclude_vars = ["needs_from_toml"]
+
+   # No exclusions (not recommended - may cause duplicates)
+   needscfg_exclude_vars = []
+
+.. warning::
+
+   Removing the default exclusions may cause resolved configuration values to be
+   written to the output file, potentially creating circular dependencies or
+   duplicate configurations.
+
 Examples
 --------
 

@@ -160,19 +160,13 @@ def write_ubproject_file(app: Sphinx, config: Config):
             return tuple(sort_for_reproducibility(item, path) for item in obj)
         return obj
 
-    exclude_vars = {
-        "needs_from_toml",
-        "needs_from_toml_table",
-        "needs_schema_definitions_from_json",
-    }
-    """Variables to exclude from writing as they are resolved configs."""
     # TODO support the extend keyword in Sphinx-Needs
     # TODO translate needs_from_toml to extend keyword?
     raw_needs_config = {x for x in config._raw_config if x.startswith("needs_")}
     need_attributes = {}
     for attribute, value in vars(config).items():
         if attribute.startswith("needs_"):
-            if attribute in exclude_vars:
+            if attribute in config.needscfg_exclude_vars:
                 # these configs are resolved, skip them
                 continue
             config_name = attribute[6:]
@@ -284,6 +278,17 @@ def setup(app: Sphinx):
         "html",
         types=[bool],
         description="Whether to add an auto-generated warning header to the output file.",
+    )
+    app.add_config_value(
+        "needscfg_exclude_vars",
+        [
+            "needs_from_toml",
+            "needs_from_toml_table",
+            "needs_schema_definitions_from_json",
+        ],
+        "html",
+        types=[list],
+        description="List of needs_* variable names to exclude from writing (resolved configs).",
     )
 
     # run this late

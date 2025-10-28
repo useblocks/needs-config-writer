@@ -687,3 +687,179 @@ def test_header_activation(
     # Check against snapshot
     assert ubproject_content == snapshot
     app.cleanup()
+
+
+def test_exclude_vars_default(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """Test that default exclude_vars filters out resolved configs."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_add_header = False
+        needscfg_write_all = True
+        needs_build_json = True
+
+        # This should be included
+        needs_types = [
+            dict(directive="req", title="Requirement", prefix="R_"),
+        ]
+
+        # Simulate resolved configs by setting them directly
+        # (normally these would be set by sphinx-needs internals)
+        needs_from_toml = "ubproject.toml"
+        needs_from_toml_table = "needs"
+        needs_schema_definitions_from_json = "schemas.json"
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+    with open(tmpdir / "schemas.json", "w", encoding="utf-8") as f:
+        f.write("{}")  # Empty JSON for schema definitions
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+
+    # Verify excluded variables are not in output
+    assert "from_toml" not in ubproject_content
+    assert "from_toml_table" not in ubproject_content
+    assert "schema_definitions_from_json" not in ubproject_content
+
+    # Verify included variable is present
+    assert "types" in ubproject_content
+    assert "Requirement" in ubproject_content
+
+    app.cleanup()
+
+
+def test_exclude_vars_custom(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """Test that custom exclude_vars can be configured."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_add_header = False
+        needscfg_write_all = True
+        needscfg_exclude_vars = ["needs_types"]  # Custom exclusion
+        needs_build_json = True
+
+        # This should be excluded by custom config
+        needs_types = [
+            dict(directive="req", title="Requirement", prefix="R_"),
+        ]
+
+        # This would normally be excluded but not with custom config
+        needs_from_toml_table = "needs"
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+
+    # Verify custom excluded variable is not in output
+    assert "needs.types" not in ubproject_content
+    assert "Requirement" not in ubproject_content
+
+    # Verify other variable is present
+    assert "string_links" in ubproject_content
+    assert 'from_toml_table = "needs"' in ubproject_content
+
+    app.cleanup()
+
+
+def test_exclude_vars_empty(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """Test that empty exclude_vars includes everything."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_add_header = False
+        needscfg_write_all = True
+        needscfg_exclude_vars = []  # No exclusions
+        needs_build_json = True
+
+        # These should now all be included
+        needs_string_links = {"links": ["depends"]}
+        needs_types = [
+            dict(directive="req", title="Requirement", prefix="R_"),
+        ]
+        # This would normally be excluded but not with empty exclude_vars
+        needs_from_toml_table = "needs"
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+
+    # Verify all variables are now present
+    assert "string_links" in ubproject_content
+    assert 'directive = "req"' in ubproject_content
+    assert 'from_toml_table = "needs"' in ubproject_content
+
+    app.cleanup()
