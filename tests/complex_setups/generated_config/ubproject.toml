@@ -35,7 +35,6 @@ directive = "req"
 title = "Requirement"
 prefix = "REQ_"
 
-
 [[needs.types]]
 directive = "impl"
 title = "Implementation"

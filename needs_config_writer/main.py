@@ -165,6 +165,8 @@ def write_ubproject_file(app: Sphinx, config: Config):
         "needs_schema_definitions_from_json",
     }
     """Variables to exclude from writing as they are resolved configs."""
+    # TODO support the extend keyword in Sphinx-Needs
+    # TODO translate needs_from_toml to extend keyword?
     raw_needs_config = {x for x in config._raw_config if x.startswith("needs_")}
     need_attributes = {}
     for attribute, value in vars(config).items():
