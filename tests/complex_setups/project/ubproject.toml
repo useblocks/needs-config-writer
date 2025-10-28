@@ -19,7 +19,9 @@ diagram_template = "\n{%- if is_need -%}\n<size:12>{{type_name}}</size>\\n**{{ti
 duration_option = "duration"
 external_needs = []
 flow_engine = "plantuml"
-flow_link_types = ["links"]
+flow_link_types = [
+    "links",
+]
 flow_show_links = false
 functions = []
 id_from_title = false
@@ -28,16 +30,16 @@ id_regex = "^[A-Z0-9_]{3,}"
 id_required = true
 include_needs = true
 json_exclude_fields = [
-  "collapse",
-  "hide",
-  "id_complete",
-  "id_parent",
-  "is_need",
-  "is_part",
-  "lineno_content",
-  "type_color",
-  "type_prefix",
-  "type_style",
+    "collapse",
+    "hide",
+    "id_complete",
+    "id_parent",
+    "is_need",
+    "is_part",
+    "lineno_content",
+    "type_color",
+    "type_prefix",
+    "type_style",
 ]
 json_remove_defaults = false
 max_title_length = -1
@@ -52,12 +54,12 @@ role_need_max_title_length = 30
 role_need_template = "{title} ({id})"
 schema_debug_active = true
 schema_debug_ignore = [
-  "extra_option_success",
-  "extra_link_success",
-  "select_success",
-  "select_fail",
-  "local_success",
-  "network_local_success",
+    "extra_option_success",
+    "extra_link_success",
+    "select_success",
+    "select_fail",
+    "local_success",
+    "network_local_success",
 ]
 schema_debug_path = "schema_debug"
 schema_severity = "info"
@@ -74,9 +76,9 @@ template_folder = "needs_templates/"
 title_from_content = false
 title_optional = false
 types = [
-  { directive = "feat", prefix = "FEAT_", title = "Feature" },
-  { directive = "impl", prefix = "IMPL_", title = "Implementation" },
-  { directive = "req", prefix = "REQ_", title = "Requirement" },
+    { directive = "feat", prefix = "FEAT_", title = "Feature" },
+    { directive = "impl", prefix = "IMPL_", title = "Implementation" },
+    { directive = "req", prefix = "REQ_", title = "Requirement" },
 ]
 variant_options = []
 warnings_always_warn = false
@@ -106,7 +108,13 @@ description = "Automotive Safety Integrity Level"
 name = "asil"
 
 [needs.extra_options.schema]
-enum = ["QM", "A", "B", "C", "D"]
+enum = [
+    "QM",
+    "A",
+    "B",
+    "C",
+    "D",
+]
 type = "string"
 
 [[needs.extra_options]]
@@ -163,72 +171,111 @@ grid = "simple"
 
 [needs.layouts.clean.layout]
 head = [
-  "<<meta(\"type_name\")>>: **<<meta(\"title\")>>** <<meta_id()>>  <<collapse_button(\"meta\", collapsed=\"icon:arrow-down-circle\", visible=\"icon:arrow-right-circle\", initial=False)>> ",
+    "<<meta(\"type_name\")>>: **<<meta(\"title\")>>** <<meta_id()>>  <<collapse_button(\"meta\", collapsed=\"icon:arrow-down-circle\", visible=\"icon:arrow-right-circle\", initial=False)>> ",
 ]
-meta = ["<<meta_all(no_links=True)>>", "<<meta_links_all()>>"]
+meta = [
+    "<<meta_all(no_links=True)>>",
+    "<<meta_links_all()>>",
+]
 
 [needs.layouts.clean_l]
 grid = "simple_side_left"
 
 [needs.layouts.clean_l.layout]
 head = [
-  "<<meta(\"type_name\")>>: **<<meta(\"title\")>>** <<meta_id()>> <<collapse_button(\"meta\", collapsed=\"icon:arrow-down-circle\", visible=\"icon:arrow-right-circle\", initial=False)>> ",
+    "<<meta(\"type_name\")>>: **<<meta(\"title\")>>** <<meta_id()>> <<collapse_button(\"meta\", collapsed=\"icon:arrow-down-circle\", visible=\"icon:arrow-right-circle\", initial=False)>> ",
 ]
-meta = ["<<meta_all(no_links=True)>>", "<<meta_links_all()>>"]
-side = ["<<image(\"field:image\", align=\"center\")>>"]
+meta = [
+    "<<meta_all(no_links=True)>>",
+    "<<meta_links_all()>>",
+]
+side = [
+    "<<image(\"field:image\", align=\"center\")>>",
+]
 
 [needs.layouts.clean_lp]
 grid = "simple_side_left_partial"
 
 [needs.layouts.clean_lp.layout]
 head = [
-  "<<meta(\"type_name\")>>: **<<meta(\"title\")>>** <<meta_id()>> <<collapse_button(\"meta\", collapsed=\"icon:arrow-down-circle\", visible=\"icon:arrow-right-circle\", initial=False)>> ",
+    "<<meta(\"type_name\")>>: **<<meta(\"title\")>>** <<meta_id()>> <<collapse_button(\"meta\", collapsed=\"icon:arrow-down-circle\", visible=\"icon:arrow-right-circle\", initial=False)>> ",
 ]
-meta = ["<<meta_all(no_links=True)>>", "<<meta_links_all()>>"]
-side = ["<<image(\"field:image\", align=\"center\")>>"]
+meta = [
+    "<<meta_all(no_links=True)>>",
+    "<<meta_links_all()>>",
+]
+side = [
+    "<<image(\"field:image\", align=\"center\")>>",
+]
 
 [needs.layouts.clean_r]
 grid = "simple_side_right"
 
 [needs.layouts.clean_r.layout]
 head = [
-  "<<meta(\"type_name\")>>: **<<meta(\"title\")>>** <<meta_id()>> <<collapse_button(\"meta\", collapsed=\"icon:arrow-down-circle\", visible=\"icon:arrow-right-circle\", initial=False)>> ",
+    "<<meta(\"type_name\")>>: **<<meta(\"title\")>>** <<meta_id()>> <<collapse_button(\"meta\", collapsed=\"icon:arrow-down-circle\", visible=\"icon:arrow-right-circle\", initial=False)>> ",
 ]
-meta = ["<<meta_all(no_links=True)>>", "<<meta_links_all()>>"]
-side = ["<<image(\"field:image\", align=\"center\")>>"]
+meta = [
+    "<<meta_all(no_links=True)>>",
+    "<<meta_links_all()>>",
+]
+side = [
+    "<<image(\"field:image\", align=\"center\")>>",
+]
 
 [needs.layouts.clean_rp]
 grid = "simple_side_right_partial"
 
 [needs.layouts.clean_rp.layout]
 head = [
-  "<<meta(\"type_name\")>>: **<<meta(\"title\")>>** <<meta_id()>> <<collapse_button(\"meta\", collapsed=\"icon:arrow-down-circle\", visible=\"icon:arrow-right-circle\", initial=False)>> ",
+    "<<meta(\"type_name\")>>: **<<meta(\"title\")>>** <<meta_id()>> <<collapse_button(\"meta\", collapsed=\"icon:arrow-down-circle\", visible=\"icon:arrow-right-circle\", initial=False)>> ",
 ]
-meta = ["<<meta_all(no_links=True)>>", "<<meta_links_all()>>"]
-side = ["<<image(\"field:image\", align=\"center\")>>"]
+meta = [
+    "<<meta_all(no_links=True)>>",
+    "<<meta_links_all()>>",
+]
+side = [
+    "<<image(\"field:image\", align=\"center\")>>",
+]
 
 [needs.layouts.complete]
 grid = "complex"
 
 [needs.layouts.complete.layout]
 footer = []
-footer_left = ["layout: <<meta(\"layout\")>>"]
-footer_right = ["style: <<meta(\"style\")>>"]
-head = ["<<meta(\"title\")>>"]
-head_left = ["<<meta_id()>>"]
-head_right = ["<<meta(\"type_name\")>>"]
-meta_left = ["<<meta_all(no_links=True, exclude=[\"layout\",\"style\"])>>"]
-meta_right = ["<<meta_links_all()>>"]
+footer_left = [
+    "layout: <<meta(\"layout\")>>",
+]
+footer_right = [
+    "style: <<meta(\"style\")>>",
+]
+head = [
+    "<<meta(\"title\")>>",
+]
+head_left = [
+    "<<meta_id()>>",
+]
+head_right = [
+    "<<meta(\"type_name\")>>",
+]
+meta_left = [
+    "<<meta_all(no_links=True, exclude=[\"layout\",\"style\"])>>",
+]
+meta_right = [
+    "<<meta_links_all()>>",
+]
 
 [needs.layouts.debug]
 grid = "simple"
 
 [needs.layouts.debug.layout]
 head = [
-  "<<meta_id()>> **<<meta(\"title\")>>**",
-  "**<<collapse_button(\"meta\", collapsed=\"Debug view on\", visible=\"Debug view off\", initial=True)>>**",
+    "<<meta_id()>> **<<meta(\"title\")>>**",
+    "**<<collapse_button(\"meta\", collapsed=\"Debug view on\", visible=\"Debug view off\", initial=True)>>**",
 ]
-meta = ["<<meta_all(exclude=[], defaults=False, show_empty=True)>>"]
+meta = [
+    "<<meta_all(exclude=[], defaults=False, show_empty=True)>>",
+]
 
 [needs.layouts.focus]
 grid = "content"
@@ -239,36 +286,52 @@ grid = "content"
 grid = "content_footer"
 
 [needs.layouts.focus_f.layout]
-footer = ["<<meta_id()>>"]
+footer = [
+    "<<meta_id()>>",
+]
 
 [needs.layouts.focus_l]
 grid = "content_side_left"
 
 [needs.layouts.focus_l.layout]
-side = ["<<meta_id()>>"]
+side = [
+    "<<meta_id()>>",
+]
 
 [needs.layouts.focus_r]
 grid = "content_side_right"
 
 [needs.layouts.focus_r.layout]
-side = ["<<meta_id()>>"]
+side = [
+    "<<meta_id()>>",
+]
 
 [needs.layouts.test]
 grid = "simple"
 
 [needs.layouts.test.layout]
 head = [
-  "<<meta(\"type_name\")>>: **<<meta(\"title\")>>** <<meta_id()>>  <<collapse_button(\"meta\", collapsed=\"icon:arrow-down-circle\", visible=\"icon:arrow-right-circle\", initial=False)>> ",
+    "<<meta(\"type_name\")>>: **<<meta(\"title\")>>** <<meta_id()>>  <<collapse_button(\"meta\", collapsed=\"icon:arrow-down-circle\", visible=\"icon:arrow-right-circle\", initial=False)>> ",
 ]
-meta = ["<<meta_all(no_links=True)>>", "<<meta_links_all()>>"]
+meta = [
+    "<<meta_all(no_links=True)>>",
+    "<<meta_links_all()>>",
+]
 
 [needs.render_context]
 
 [needs.schema_definitions."$defs".safe-need]
-required = ["asil"]
+required = [
+    "asil",
+]
 
 [needs.schema_definitions."$defs".safe-need.properties.asil]
-enum = ["A", "B", "C", "D"]
+enum = [
+    "A",
+    "B",
+    "C",
+    "D",
+]
 
 [needs.schema_definitions."$defs".type-feat.properties.type]
 const = "feat"
@@ -282,10 +345,17 @@ severity = "violation"
 const = "feat"
 
 [needs.schema_definitions.schemas.validate.local]
-required = ["asil"]
+required = [
+    "asil",
+]
 
 [needs.schema_definitions.schemas.validate.local.properties.asil]
-enum = ["A", "B", "C", "D"]
+enum = [
+    "A",
+    "B",
+    "C",
+    "D",
+]
 
 [needs.services]
 

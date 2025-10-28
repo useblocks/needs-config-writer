@@ -16,7 +16,8 @@ repos:
     rev: v0.9.3
     hooks:
       - id: taplo-format
-      # lint fetches schemas online at each call, deactivate for now
+        # lint fetches schemas online at each call, deactivate for now
+        exclude: 'tests/complex_setups/project/ubproject.toml$'
       - id: taplo-lint
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
