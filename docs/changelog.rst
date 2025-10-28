@@ -36,7 +36,7 @@ This releases adds quality-of-life improvements and minor fixes.
   which Sphinx-Needs configuration variables are excluded from the exported TOML file.
   See :ref:`excluded_configs` for details.
 
-- ✨ Merge additional TOML files (:pr:`14``)
+- ✨ Merge additional TOML files (:pr:`14`)
 
   A new configuration option ``needscfg_merge_toml_files`` was added to specify
   additional TOML files to merge into the exported ``ubproject.toml``.
