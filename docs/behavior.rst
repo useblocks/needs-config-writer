@@ -39,6 +39,13 @@ For example, if you use ``needs_from_toml = "shared.toml"`` to load shared confi
 the exported ``ubproject.toml`` will contain the actual configuration values from ``shared.toml``,
 not a reference to load from ``shared.toml`` again.
 
+.. note::
+
+   It should be considered to support the
+   `extend <https://ubcode.useblocks.com/usage/ubproject.html#sharing-configuration>`__
+   keyword from |ubcode| in future to allow referencing shared configuration files
+   directly in the exported TOML.
+
 Type handling
 ~~~~~~~~~~~~~
 

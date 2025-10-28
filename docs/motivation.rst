@@ -125,7 +125,6 @@ and can directly be used with tools like |ubcode|.
    .. literalinclude:: ../tests/complex_setups/project/conf.py
       :language: python
 
-
 .. dropdown:: project/ubproject.toml
 
    .. literalinclude:: ../tests/complex_setups/project/ubproject.toml
