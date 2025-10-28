@@ -5,6 +5,7 @@ from sphinx.application import Sphinx
 from sphinx.config import Config
 import tomli_w
 
+from needs_config_writer import __version__
 from needs_config_writer.logging import get_logger, log_warning
 
 LOGGER = get_logger(__name__)
@@ -287,3 +288,9 @@ def setup(app: Sphinx):
 
     # run this late
     app.connect("config-inited", write_ubproject_file, priority=999)
+
+    return {
+        "version": __version__,
+        "parallel_read_safe": True,
+        "parallel_write_safe": True,
+    }
