@@ -13,12 +13,15 @@ the need for a static configuration file.
 Contents
 --------
 
-.. toctree:: configuration
+.. toctree::
    :maxdepth: 2
+
+   configuration
+   behavior
 
 .. toctree::
    :maxdepth: 1
    :caption: Development
 
-   development/changelog
-   development/contributing
+   changelog
+   contributing
