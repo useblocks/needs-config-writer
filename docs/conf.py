@@ -73,6 +73,8 @@ needs_from_toml = "ubproject.toml"
 
 extlinks = {
     "pr": ("https://github.com/useblocks/needs-config-writer/pull/%s", "PR #%s"),
-    "issue": ("https://github.com/useblocks/needs-config-writer/issues/%s", "issue #%s"),
+    "issue": (
+        "https://github.com/useblocks/needs-config-writer/issues/%s",
+        "issue #%s",
+    ),
 }
-
