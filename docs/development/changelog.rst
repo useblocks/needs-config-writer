@@ -8,7 +8,6 @@ Changelog
 Unreleased
 ----------
 
-
 .. _`release:0.1.0`:
 
 0.1.0
@@ -18,6 +17,8 @@ Unreleased
 
 Initial release of ``Needs-Config-Writer``
 
-This version features:
+This version allows to write Sphinx-Needs TOML
+configuration files automatically during Sphinx builds
+to a customisable location.
 
-- ✨ Write config to a customisable directory
+Hash checking is supported to warn about changed configurations.
