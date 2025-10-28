@@ -1,9 +1,8 @@
-import hashlib
 from pathlib import Path, PosixPath
 from typing import Any
 
 from sphinx.application import Sphinx
-import tomli
+from sphinx.config import Config
 import tomli_w
 
 from needs_config_writer.logging import get_logger, log_warning
@@ -11,7 +10,7 @@ from needs_config_writer.logging import get_logger, log_warning
 LOGGER = get_logger(__name__)
 
 
-def write_ubproject_file(app: Sphinx, exception):
+def write_ubproject_file(app: Sphinx, config: Config):
     def get_safe_config(obj: Any, path: str = ""):
         """
         Recursively walk needs config and make it TOML serialisable.
@@ -145,26 +144,25 @@ def write_ubproject_file(app: Sphinx, exception):
             return tuple(sort_for_reproducibility(item, path) for item in obj)
         return obj
 
-    raw_needs_config = {x for x in app.config._raw_config if x.startswith("needs_")}
+    raw_needs_config = {x for x in config._raw_config if x.startswith("needs_")}
     need_attributes = {}
-    for attribute, value in vars(app.config).items():
+    for attribute, value in vars(config).items():
         if attribute.startswith("needs_"):
             config_name = attribute[6:]
             safe_value = get_safe_config(value, f"needs.{config_name}")
             # Only include serializable values (None means filtered out)
             if safe_value is not None:
-                if app.config.needscfg_write_defaults:
+                if config.needscfg_write_all:
                     need_attributes[config_name] = safe_value
                 else:
                     if attribute in raw_needs_config:
                         need_attributes[config_name] = safe_value
 
-    # Calculate SHA1 hash of the needs configuration
-    # Sort all data structures to ensure reproducible hash
+    # Sort all data structures to ensure reproducible serialization
     sorted_attributes = sort_for_reproducibility(need_attributes)
 
     # Resolve output path with template substitution
-    output_path_template = app.config.needscfg_outpath
+    output_path_template = config.needscfg_outpath
     output_path_str = output_path_template.replace("${outdir}", str(app.outdir))
     output_path_str = output_path_str.replace("${srcdir}", str(app.srcdir))
     outpath = Path(output_path_str)
@@ -173,43 +171,33 @@ def write_ubproject_file(app: Sphinx, exception):
     if not outpath.is_absolute():
         outpath = Path(app.confdir) / outpath
 
-    # Conditionally include hash in output
-    if app.config.needscfg_use_hash:
-        needs_data = tomli_w.dumps({"needs": sorted_attributes})
-        needs_hash = hashlib.sha1(needs_data.encode("utf-8")).hexdigest()
-        data = tomli_w.dumps(
-            {"meta": {"needs_hash": needs_hash}, "needs": sorted_attributes}
-        )
-    else:
-        data = tomli_w.dumps({"needs": sorted_attributes})
-        needs_hash = None
+    # Generate new content
+    new_content = tomli_w.dumps({"needs": sorted_attributes})
 
+    # Check if file exists and compare content
     if outpath.exists():
-        existing_content = outpath.read_text("utf8")
-        try:
-            existing_data = tomli.loads(existing_content)
-            existing_hash = existing_data.get("meta", {}).get("needs_hash")
-        except tomli.TOMLDecodeError:
-            existing_hash = None
+        existing_content = outpath.read_text("utf-8")
+        content_differs = existing_content != new_content
 
-        hash_matches = (
-            existing_hash == needs_hash if (existing_hash and needs_hash) else False
-        )
-        if app.config.needscfg_use_hash and not hash_matches:
+        if content_differs and config.needscfg_warn_on_diff:
             log_warning(
                 LOGGER,
-                f"Hash of existing file '{outpath}' does not match new value (old: {existing_hash}, new: {needs_hash})",
-                "hash_mismatch",
+                f"Content of existing file '{outpath}' differs from new configuration",
+                "content_diff",
                 location=None,
             )
 
-        if not hash_matches and app.config.needscfg_overwrite:
-            outpath.write_text(data, encoding="utf-8")
+        if content_differs and config.needscfg_overwrite:
+            outpath.write_text(new_content, encoding="utf-8")
             LOGGER.info(
                 f"Updated needs configuration written to '{outpath}'",
             )
-
-        if hash_matches:
+        elif content_differs:
+            LOGGER.info(
+                f"Needs configuration changed but not overwriting '{outpath}' (needscfg_overwrite=False)",
+                type="ubproject",
+            )
+        else:
             LOGGER.info(
                 f"Needs configuration unchanged - not rewriting '{outpath}'",
                 type="ubproject",
@@ -217,21 +205,36 @@ def write_ubproject_file(app: Sphinx, exception):
     else:
         # Ensure parent directory exists
         outpath.parent.mkdir(parents=True, exist_ok=True)
-        outpath.write_text(data, encoding="utf-8")
+        outpath.write_text(new_content, encoding="utf-8")
+        LOGGER.info(
+            f"Needs configuration written to '{outpath}'",
+        )
 
 
 def setup(app: Sphinx):
     """Configure Sphinx extension."""
 
     app.add_config_value(
+        "needscfg_warn_on_diff",
+        True,
+        "html",
+        types=[bool],
+        description="Whether to emit a warning when the existing file differs from new configuration.",
+    )
+    app.add_config_value(
         "needscfg_overwrite",
         False,
         "html",
         types=[bool],
-        description="Whether to update existing ubproject.toml files.",
+        description="Whether to overwrite existing files when configuration differs.",
     )
-    app.add_config_value("needscfg_use_hash", True, "html", types=[bool])
-    app.add_config_value("needscfg_write_defaults", False, "html", types=[bool])
+    app.add_config_value(
+        "needscfg_write_all",
+        False,
+        "html",
+        types=[bool],
+        description="Whether to write all needs_* configs or only explicitly configured ones.",
+    )
     app.add_config_value(
         "needscfg_outpath",
         "${outdir}/ubproject.toml",
