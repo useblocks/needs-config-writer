@@ -1,0 +1,28 @@
+{
+  "$defs": {
+    "type-feat": {
+      "properties": {
+        "type": { "const": "feat" }
+      }
+    },
+    "safe-need": {
+      "properties": {
+        "asil": { "enum": ["A", "B", "C", "D"] }
+      },
+      "required": ["asil"]
+    }
+  },
+  "schemas": [
+    {
+      "id": "feat",
+      "select": {
+        "$ref": "#/$defs/type-feat"
+      },
+      "validate": {
+        "local": {
+          "$ref": "#/$defs/safe-need"
+        }
+      }
+    }
+  ]
+}

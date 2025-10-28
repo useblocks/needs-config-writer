@@ -1,0 +1,42 @@
+"$schema" = "https://ubcode.useblocks.com/ubproject.schema.json"
+
+[needs]
+id_required = true
+id_regex = "^[A-Z0-9_]{3,}"
+build_json = true
+schema_debug_active = true
+
+[[needs.extra_options]]
+name = "efforts"
+description = "FTE days"
+schema.type = "integer"
+schema.minimum = 0
+
+[[needs.extra_options]]
+name = "priority"
+description = "Priority level, 1-5 where 1 is highest and 5 is lowest"
+schema.type = "integer"
+schema.minimum = 1
+schema.maximum = 5
+
+[[needs.extra_options]]
+name = "asil"
+description = "Automotive Safety Integrity Level"
+schema.type = "string"
+schema.enum = ["QM", "A", "B", "C", "D"]
+
+[[needs.types]]
+directive = "feat"
+title = "Feature"
+prefix = "FEAT_"
+
+[[needs.types]]
+directive = "req"
+title = "Requirement"
+prefix = "REQ_"
+
+
+[[needs.types]]
+directive = "impl"
+title = "Implementation"
+prefix = "IMPL_"
