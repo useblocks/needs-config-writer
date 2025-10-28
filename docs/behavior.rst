@@ -23,7 +23,7 @@ Configuration export process
 Excluded configurations
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-The following ``needs_*`` configuration values are automatically excluded from the exported
+By default, the following ``needs_*`` configuration values are automatically excluded from the exported
 TOML file:
 
 - ``needs_from_toml``: Path to TOML file to load configuration from
@@ -38,6 +38,41 @@ not the loading instructions themselves.
 For example, if you use ``needs_from_toml = "shared.toml"`` to load shared configuration,
 the exported ``ubproject.toml`` will contain the actual configuration values from ``shared.toml``,
 not a reference to load from ``shared.toml`` again.
+
+Customizing exclusions
+^^^^^^^^^^^^^^^^^^^^^^
+
+You can customize which configuration values are excluded using the :ref:`config_exclude_vars`
+configuration option. This allows you to:
+
+- Add additional variables to exclude beyond the defaults
+- Remove default exclusions if needed (not recommended)
+- Exclude custom configuration variables specific to your project
+
+**Example - Add custom exclusions:**
+
+.. code-block:: python
+
+   # conf.py
+   needscfg_exclude_vars = [
+       "needs_from_toml",
+       "needs_from_toml_table",
+       "needs_schema_definitions_from_json",
+       "needs_my_custom_variable",  # Add your own
+   ]
+
+**Example - Exclude only specific variables:**
+
+.. code-block:: python
+
+   # conf.py
+   needscfg_exclude_vars = ["needs_from_toml"]
+
+.. warning::
+
+   Removing the default exclusions may cause resolved configuration values to be
+   written to the output file, potentially creating circular dependencies or
+   duplicate configurations.
 
 .. note::
 
