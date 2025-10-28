@@ -13,6 +13,9 @@ the need for a static configuration file.
 Contents
 --------
 
+.. toctree:: configuration
+   :maxdepth: 2
+
 .. toctree::
    :maxdepth: 1
    :caption: Development

@@ -2,6 +2,96 @@
 # name: test_basic
   '''
   [meta]
+  needs_hash = "6a61e439e05c81031f049cfeb0f81e9e2223a627"
+  
+  [needs]
+  build_json = true
+  
+  '''
+# ---
+# name: test_hash_not_overwrite
+  '''
+  [meta]
+  needs_hash = "c6d4fc9f725d6d3f07505bbeb320021bd01cf472"
+  
+  [needs]
+  
+  '''
+# ---
+# name: test_hash_not_overwrite.1
+  list([
+    "WARNING: Hash of existing file '<srcdir>/_build/html/ubproject.toml' does not match new value (old: c6d4fc9f725d6d3f07505bbeb320021bd01cf472, new: 6a61e439e05c81031f049cfeb0f81e9e2223a627) [needs_config_writer.hash_mismatch]",
+  ])
+# ---
+# name: test_hash_overwrite
+  '''
+  [meta]
+  needs_hash = "c6d4fc9f725d6d3f07505bbeb320021bd01cf472"
+  
+  [needs]
+  
+  '''
+# ---
+# name: test_hash_overwrite.1
+  list([
+    "WARNING: Hash of existing file '<srcdir>/_build/html/ubproject.toml' does not match new value (old: c6d4fc9f725d6d3f07505bbeb320021bd01cf472, new: 6a61e439e05c81031f049cfeb0f81e9e2223a627) [needs_config_writer.hash_mismatch]",
+  ])
+# ---
+# name: test_hash_overwrite.2
+  '''
+  [meta]
+  needs_hash = "6a61e439e05c81031f049cfeb0f81e9e2223a627"
+  
+  [needs]
+  build_json = true
+  
+  '''
+# ---
+# name: test_no_hash
+  '''
+  [needs]
+  
+  '''
+# ---
+# name: test_outpath_absolute
+  '''
+  [meta]
+  needs_hash = "c6d4fc9f725d6d3f07505bbeb320021bd01cf472"
+  
+  [needs]
+  
+  '''
+# ---
+# name: test_outpath_variants[outdir_template]
+  '''
+  [meta]
+  needs_hash = "c6d4fc9f725d6d3f07505bbeb320021bd01cf472"
+  
+  [needs]
+  
+  '''
+# ---
+# name: test_outpath_variants[relative_path]
+  '''
+  [meta]
+  needs_hash = "c6d4fc9f725d6d3f07505bbeb320021bd01cf472"
+  
+  [needs]
+  
+  '''
+# ---
+# name: test_outpath_variants[srcdir_template]
+  '''
+  [meta]
+  needs_hash = "c6d4fc9f725d6d3f07505bbeb320021bd01cf472"
+  
+  [needs]
+  
+  '''
+# ---
+# name: test_write_defaults
+  '''
+  [meta]
   needs_hash = "64890fe2faf36c093299fd30cb817ab74a4f7bdb"
   
   [needs]

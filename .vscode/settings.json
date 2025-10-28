@@ -1,0 +1,30 @@
+{
+  "editor.formatOnSave": true,
+  "editor.rulers": [100],
+  "hediet.vscode-drawio.theme": "kennedy",
+  "mypy.dmypyExecutable": "${workspaceFolder}/.venv/bin/dmypy",
+  "mypy.targets": [],
+  "python.testing.pytestArgs": ["tests"],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true,
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true
+  },
+  "[restructuredtext]": {
+    "editor.tabSize": 3,
+    "editor.detectIndentation": false
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+}

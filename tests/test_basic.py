@@ -4,8 +4,10 @@ from pathlib import Path
 import textwrap
 from typing import Any
 
+import pytest
 from sphinx.testing.util import SphinxTestApp
 from sphinx.util.console import strip_colors
+import tomli
 
 
 def test_basic(
@@ -20,6 +22,7 @@ def test_basic(
             "sphinx_needs",
             "needs_config_writer",
         ]
+        needs_build_json = True
         """
     )
     index_rst = textwrap.dedent(
@@ -48,5 +51,461 @@ def test_basic(
     path_ubproject = Path(app.builder.outdir, "ubproject.toml")
     assert path_ubproject.exists()
     ubproject_content = path_ubproject.read_text("utf8")
+    assert ubproject_content == snapshot
+    app.cleanup()
+
+
+def test_no_hash(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+    snapshot,
+) -> None:
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_use_hash = False
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+    warnings = (
+        strip_colors(app._warning.getvalue())
+        .replace(str(app.srcdir) + os.path.sep, "<srcdir>/")
+        .splitlines()
+    )
+    assert not warnings
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+    assert ubproject_content == snapshot
+    app.cleanup()
+
+
+def test_write_defaults(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+    snapshot,
+) -> None:
+    """Test that needscfg_write_defaults=True includes default values."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_write_defaults = True
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+    warnings = (
+        strip_colors(app._warning.getvalue())
+        .replace(str(app.srcdir) + os.path.sep, "<srcdir>/")
+        .replace("\\", "/")  # Normalize Windows backslashes
+        .splitlines()
+    )
+    assert not warnings
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+    assert ubproject_content == snapshot
+    app.cleanup()
+
+
+def test_hash_sorting(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """Test that configuration sorting produces the same hash regardless of definition order."""
+    # First configuration with items in one order
+    conf_py_1 = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needs_statuses = [
+            dict(name="open", description="Nothing done yet"),
+            dict(name="in progress", description="Someone is working on it"),
+            dict(name="implemented", description="Work is done and implemented"),
+        ]
+        needs_build_json = True
+        needscfg_use_hash = True
+        """
+    )
+
+    # Second configuration with same items but different order
+    conf_py_2 = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needs_statuses = [
+            dict(name="implemented", description="Work is done and implemented"),
+            dict(name="open", description="Nothing done yet"),
+            dict(name="in progress", description="Someone is working on it"),
+        ]
+        needs_build_json = True
+        needscfg_use_hash = True
+        """
+    )
+
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+
+    # Build with first configuration
+    tmpdir1 = tmpdir / "build1"
+    tmpdir1.mkdir()
+    file_contents_1: dict[str, str] = {
+        "conf": conf_py_1,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir1, file_contents_1)
+
+    app1: SphinxTestApp = make_app(srcdir=Path(tmpdir1), freshenv=True)
+    app1.build()
+
+    assert app1.statuscode == 0
+
+    path_ubproject_1 = Path(app1.builder.outdir, "ubproject.toml")
+    assert path_ubproject_1.exists()
+    content_1 = path_ubproject_1.read_text("utf8")
+
+    # Extract hash from first build's [meta] section
+    data_1 = tomli.loads(content_1)
+    hash_1 = data_1.get("meta", {}).get("needs_hash")
+    assert hash_1 is not None, "Hash not found in [meta] section"
+
+    app1.cleanup()
+
+    # Build with second configuration (different order)
+    tmpdir2 = tmpdir / "build2"
+    tmpdir2.mkdir()
+    file_contents_2: dict[str, str] = {
+        "conf": conf_py_2,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir2, file_contents_2)
+
+    app2: SphinxTestApp = make_app(srcdir=Path(tmpdir2), freshenv=True)
+    app2.build()
+
+    assert app2.statuscode == 0
+
+    path_ubproject_2 = Path(app2.builder.outdir, "ubproject.toml")
+    assert path_ubproject_2.exists()
+    content_2 = path_ubproject_2.read_text("utf8")
+
+    # Extract hash from second build's [meta] section
+    data_2 = tomli.loads(content_2)
+    hash_2 = data_2.get("meta", {}).get("needs_hash")
+    assert hash_2 is not None, "Hash not found in [meta] section"
+
+    app2.cleanup()
+
+    # Hashes should be identical despite different definition order
+    assert hash_1 == hash_2, f"Hashes differ: {hash_1} != {hash_2}"
+
+    # The actual content (after sorting) should also be identical
+    assert data_1 == data_2
+
+
+def test_hash_overwrite(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+    snapshot,
+) -> None:
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_use_hash = True
+        needscfg_overwrite = True
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+    warnings = (
+        strip_colors(app._warning.getvalue())
+        .replace(str(app.srcdir) + os.path.sep, "<srcdir>/")
+        .splitlines()
+    )
+    assert not warnings
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+    assert ubproject_content == snapshot
+    app.cleanup()
+
+    conf_py2 = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_use_hash = True
+        needscfg_overwrite = True
+        needs_build_json = True
+        """
+    )
+    write_fixture_files(tmpdir, {"conf": conf_py2})
+    app2: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app2.build()
+    assert app2.statuscode == 0
+    warnings2 = (
+        strip_colors(app2._warning.getvalue())
+        .replace(str(app2.srcdir) + os.path.sep, "<srcdir>/")
+        .replace("\\", "/")  # Normalize Windows backslashes
+        .splitlines()
+    )
+    assert warnings2 == snapshot
+
+    path_ubproject = Path(app2.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+    assert ubproject_content == snapshot
+    app2.cleanup()
+
+
+def test_hash_not_overwrite(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+    snapshot,
+) -> None:
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_use_hash = True
+        needscfg_overwrite = False
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+    warnings = (
+        strip_colors(app._warning.getvalue())
+        .replace(str(app.srcdir) + os.path.sep, "<srcdir>/")
+        .splitlines()
+    )
+    assert not warnings
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+    assert ubproject_content == snapshot
+    app.cleanup()
+
+    conf_py2 = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_use_hash = True
+        needscfg_overwrite = False
+        needs_build_json = True
+        """
+    )
+    write_fixture_files(tmpdir, {"conf": conf_py2})
+    app2: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app2.build()
+    assert app2.statuscode == 0
+    warnings2 = (
+        strip_colors(app2._warning.getvalue())
+        .replace(str(app2.srcdir) + os.path.sep, "<srcdir>/")
+        .replace("\\", "/")  # Normalize Windows backslashes
+        .splitlines()
+    )
+    assert warnings2 == snapshot
+
+    # Verify that the file was NOT overwritten (content should remain the same as first run)
+    path_ubproject = Path(app2.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content_after = path_ubproject.read_text("utf8")
+    # Content should be identical to the first run since overwrite is False
+    assert ubproject_content_after == ubproject_content
+    app2.cleanup()
+
+
+@pytest.mark.parametrize(
+    ("path_config", "path_resolver"),
+    [
+        # Test ${outdir} template
+        (
+            "${outdir}/custom/path/config.toml",
+            lambda app, _tmpdir: Path(
+                app.builder.outdir, "custom", "path", "config.toml"
+            ),
+        ),
+        # Test ${srcdir} template
+        (
+            "${srcdir}/generated_config.toml",
+            lambda app, _tmpdir: Path(app.srcdir, "generated_config.toml"),
+        ),
+        # Test relative path (relative to confdir)
+        (
+            "relative/config.toml",
+            lambda app, _tmpdir: Path(app.confdir, "relative", "config.toml"),
+        ),
+    ],
+    ids=["outdir_template", "srcdir_template", "relative_path"],
+)
+def test_outpath_variants(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+    snapshot,
+    path_config: str,
+    path_resolver: Callable[[SphinxTestApp, Path], Path],
+) -> None:
+    """Test different output path configurations."""
+    conf_py = textwrap.dedent(
+        f"""
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_outpath = "{path_config}"
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+
+    path_ubproject = path_resolver(app, tmpdir)
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+    assert ubproject_content == snapshot
+
+    app.cleanup()
+
+
+def test_outpath_absolute(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+    snapshot,
+) -> None:
+    """Test output path with absolute path."""
+    absolute_dir = tmpdir / "absolute_output"
+    absolute_dir.mkdir()
+    absolute_path = absolute_dir / "absolute_config.toml"
+
+    conf_py = textwrap.dedent(
+        f"""
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_outpath = r"{absolute_path}"
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+    assert absolute_path.exists()
+    ubproject_content = absolute_path.read_text("utf8")
     assert ubproject_content == snapshot
     app.cleanup()

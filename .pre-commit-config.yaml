@@ -22,4 +22,6 @@ repos:
     rev: v6.0.0
     hooks:
       - id: end-of-file-fixer
+        exclude: '\.ambr$'
       - id: trailing-whitespace
+        exclude: '\.ambr$'

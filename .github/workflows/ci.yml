@@ -28,8 +28,6 @@ jobs:
           - py312-sphinx82
           - py313-sphinx74
           - py313-sphinx82
-          - py314-sphinx74
-          - py314-sphinx82
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v5
