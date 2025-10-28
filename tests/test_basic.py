@@ -101,44 +101,114 @@ def test_write_defaults(
     app.cleanup()
 
 
+@pytest.mark.parametrize(
+    ("conf_py_1", "conf_py_2"),
+    [
+        # Test sorting of statuses by name field
+        (
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_statuses = [
+                dict(name="open", description="Nothing done yet"),
+                dict(name="in progress", description="Someone is working on it"),
+                dict(name="implemented", description="Work is done and implemented"),
+            ]
+            needs_build_json = True
+            """,
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_statuses = [
+                dict(name="implemented", description="Work is done and implemented"),
+                dict(name="open", description="Nothing done yet"),
+                dict(name="in progress", description="Someone is working on it"),
+            ]
+            needs_build_json = True
+            """,
+        ),
+        # Test sorting of types by title field
+        (
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_types = [
+                dict(directive="req", title="Requirement", prefix="R_"),
+                dict(directive="spec", title="Specification", prefix="S_"),
+                dict(directive="impl", title="Implementation", prefix="I_"),
+            ]
+            """,
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_types = [
+                dict(directive="spec", title="Specification", prefix="S_"),
+                dict(directive="impl", title="Implementation", prefix="I_"),
+                dict(directive="req", title="Requirement", prefix="R_"),
+            ]
+            """,
+        ),
+        # Test sorting of extra_options as list of strings
+        (
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_extra_options = ["component", "security", "version"]
+            """,
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_extra_options = ["version", "component", "security"]
+            """,
+        ),
+        # Test sorting of extra_options as list of dicts by name field
+        (
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_extra_options = [
+                dict(name="component", description="Component name"),
+                dict(name="security", description="Security level"),
+                dict(name="version", description="Version number"),
+            ]
+            """,
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_extra_options = [
+                dict(name="version", description="Version number"),
+                dict(name="component", description="Component name"),
+                dict(name="security", description="Security level"),
+            ]
+            """,
+        ),
+    ],
+    ids=["statuses", "types", "extra_options_strings", "extra_options_dicts"],
+)
 def test_sorting(
     tmpdir: Path,
     make_app: Callable[[], SphinxTestApp],
     write_fixture_files: Callable[[Path, dict[str, Any]], None],
+    conf_py_1: str,
+    conf_py_2: str,
 ) -> None:
     """Test that configuration sorting produces the same output regardless of definition order."""
-    # First configuration with items in one order
-    conf_py_1 = textwrap.dedent(
-        """
-        extensions = [
-            "sphinx_needs",
-            "needs_config_writer",
-        ]
-        needs_statuses = [
-            dict(name="open", description="Nothing done yet"),
-            dict(name="in progress", description="Someone is working on it"),
-            dict(name="implemented", description="Work is done and implemented"),
-        ]
-        needs_build_json = True
-        """
-    )
-
-    # Second configuration with same items but different order
-    conf_py_2 = textwrap.dedent(
-        """
-        extensions = [
-            "sphinx_needs",
-            "needs_config_writer",
-        ]
-        needs_statuses = [
-            dict(name="implemented", description="Work is done and implemented"),
-            dict(name="open", description="Nothing done yet"),
-            dict(name="in progress", description="Someone is working on it"),
-        ]
-        needs_build_json = True
-        """
-    )
-
     index_rst = textwrap.dedent(
         """
         Headline
@@ -150,7 +220,7 @@ def test_sorting(
     tmpdir1 = tmpdir / "build1"
     tmpdir1.mkdir()
     file_contents_1: dict[str, str] = {
-        "conf": conf_py_1,
+        "conf": textwrap.dedent(conf_py_1),
         "rst": index_rst,
     }
     write_fixture_files(tmpdir1, file_contents_1)
@@ -170,7 +240,7 @@ def test_sorting(
     tmpdir2 = tmpdir / "build2"
     tmpdir2.mkdir()
     file_contents_2: dict[str, str] = {
-        "conf": conf_py_2,
+        "conf": textwrap.dedent(conf_py_2),
         "rst": index_rst,
     }
     write_fixture_files(tmpdir2, file_contents_2)

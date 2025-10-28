@@ -192,7 +192,7 @@ Lists are sorted based on their content type and path in the configuration:
 
 - ``external_needs``: Sorted by ``id_prefix`` field
 - ``extra_links``: Sorted by ``option`` field
-- ``extra_options``: Sorted as primitives
+- ``extra_options``: Dynamically sorted - if list of strings, sorted as primitives; if list of dicts, sorted by ``name`` field
 - ``flow_link_types``: Sorted as primitives
 - ``json_exclude_fields``: Sorted as primitives
 - ``statuses``: Sorted by ``name`` field
@@ -201,6 +201,20 @@ Lists are sorted based on their content type and path in the configuration:
 - ``variant_options``: Sorted as primitives
 
 Other lists preserve their original order but nested structures are still sorted.
+
+.. note::
+
+   The ``extra_options`` configuration supports two formats:
+
+   - **List of strings**: ``needs_extra_options = ["component", "security", "version"]``
+
+     Sorted alphabetically as primitives.
+
+   - **List of dictionaries**: ``needs_extra_options = [dict(name="component", ...), dict(name="security", ...), ...]``
+
+     Sorted alphabetically by the ``name`` field.
+
+   The extension automatically detects the format and applies the appropriate sorting strategy.
 
 **Set Sorting:**
 

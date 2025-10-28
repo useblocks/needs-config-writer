@@ -94,13 +94,12 @@ def write_ubproject_file(app: Sphinx, config: Config):
         #   "path": None        - Sort list of primitives (strings, numbers, etc.)
         list_sort_rules = {
             "external_needs": "id_prefix",  # Sort external_needs by id
-            "extra_links": "option",  # Sort types array by directive field
-            "extra_options": None,  # Sort extra_options list of strings
+            "extra_links": "option",  # Sort extra_links by option field
             "flow_link_types": None,  # Sort flow_link_types list of strings
             "json_exclude_fields": None,  # Sort json_exclude_fields list
-            "statuses": "name",  # Sort statuses list of strings
-            "tags": "name",  # Sort tags list of strings
-            "types": "title",  # Sort types array by directive field
+            "statuses": "name",  # Sort statuses by name field
+            "tags": "name",  # Sort tags by name field
+            "types": "title",  # Sort types by title field
             "variant_options": None,
         }
 
@@ -118,6 +117,22 @@ def write_ubproject_file(app: Sphinx, config: Config):
             processed_items = [
                 sort_for_reproducibility(item, f"{path}[]") for item in obj
             ]
+
+            # Special handling for extra_options which can be list[str] or list[dict]
+            if path == "extra_options":
+                if processed_items and all(
+                    isinstance(item, dict) for item in processed_items
+                ):
+                    # List of dicts - sort by 'name' key if present
+                    if all("name" in item for item in processed_items):
+                        return sorted(processed_items, key=lambda x: x["name"])
+                elif processed_items and all(
+                    isinstance(item, str) for item in processed_items
+                ):
+                    # List of strings - sort as primitives
+                    return sorted(processed_items)
+                # Mixed types or empty - return as is
+                return processed_items
 
             # Check if there's a custom sort rule for this list
             if path in list_sort_rules:
