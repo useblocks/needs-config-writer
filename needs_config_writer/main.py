@@ -1,3 +1,4 @@
+from difflib import unified_diff
 from pathlib import Path, PosixPath
 from typing import Any
 
@@ -298,9 +299,26 @@ def write_ubproject_file(app: Sphinx, config: Config):
         content_differs = existing_content != new_content
 
         if content_differs and config.needscfg_warn_on_diff:
+            # Generate and log the diff
+            diff_lines = list(
+                unified_diff(
+                    existing_content.splitlines(keepends=True),
+                    new_content.splitlines(keepends=True),
+                    fromfile=f"{outpath} (existing)",
+                    tofile=f"{outpath} (new)",
+                    lineterm="",
+                )
+            )
+
+            # Format diff for display (limit to first 50 lines to avoid overwhelming output)
+            max_diff_lines = 50
+            diff_preview = "".join(diff_lines[:max_diff_lines])
+            if len(diff_lines) > max_diff_lines:
+                diff_preview += f"\n... ({len(diff_lines) - max_diff_lines} more lines)"
+
             log_warning(
                 LOGGER,
-                f"Content of existing file '{outpath}' differs from new configuration",
+                f"Content of existing file '{outpath}' differs from new configuration:\n{diff_preview}",
                 "content_diff",
                 location=None,
             )
