@@ -21,6 +21,7 @@ def test_basic(
             "sphinx_needs",
             "needs_config_writer",
         ]
+        needscfg_add_header = False
         needs_build_json = True
         """
     )
@@ -67,6 +68,7 @@ def test_write_defaults(
             "sphinx_needs",
             "needs_config_writer",
         ]
+        needscfg_add_header = False
         needscfg_write_all = True
         """
     )
@@ -273,6 +275,7 @@ def test_warn_on_diff(
             "sphinx_needs",
             "needs_config_writer",
         ]
+        needscfg_add_header = False
         needscfg_warn_on_diff = True
         """
     )
@@ -312,6 +315,7 @@ def test_warn_on_diff(
             "sphinx_needs",
             "needs_config_writer",
         ]
+        needscfg_add_header = False
         needscfg_warn_on_diff = True
         needs_build_json = True
         """
@@ -348,6 +352,7 @@ def test_no_warn_on_same_content(
             "sphinx_needs",
             "needs_config_writer",
         ]
+        needscfg_add_header = False
         needscfg_warn_on_diff = True
         needs_build_json = True
         """
@@ -408,6 +413,7 @@ def test_overwrite_false(
             "sphinx_needs",
             "needs_config_writer",
         ]
+        needscfg_add_header = False
         needscfg_overwrite = False
         """
     )
@@ -441,6 +447,7 @@ def test_overwrite_false(
             "sphinx_needs",
             "needs_config_writer",
         ]
+        needscfg_add_header = False
         needscfg_overwrite = False
         needs_build_json = True
         """
@@ -470,6 +477,7 @@ def test_overwrite_true(
             "sphinx_needs",
             "needs_config_writer",
         ]
+        needscfg_add_header = False
         """
     )
     index_rst = textwrap.dedent(
@@ -501,6 +509,7 @@ def test_overwrite_true(
             "sphinx_needs",
             "needs_config_writer",
         ]
+        needscfg_add_header = False
         needscfg_overwrite = True
         needs_build_json = True
         """
@@ -557,6 +566,7 @@ def test_outpath_variants(
             "sphinx_needs",
             "needs_config_writer",
         ]
+        needscfg_add_header = False
         needscfg_outpath = "{path_config}"
         """
     )
@@ -602,6 +612,7 @@ def test_outpath_absolute(
             "sphinx_needs",
             "needs_config_writer",
         ]
+        needscfg_add_header = False
         needscfg_outpath = r"{absolute_path}"
         """
     )
@@ -623,5 +634,56 @@ def test_outpath_absolute(
     assert app.statuscode == 0
     assert absolute_path.exists()
     ubproject_content = absolute_path.read_text("utf8")
+    assert ubproject_content == snapshot
+    app.cleanup()
+
+
+def test_header_activation(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+    snapshot,
+) -> None:
+    """Test that needscfg_add_header=True (default) adds a header to the output."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needs_build_json = True
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+    warnings = (
+        strip_colors(app._warning.getvalue())
+        .replace(str(app.srcdir) + os.path.sep, "<srcdir>/")
+        .splitlines()
+    )
+    assert not warnings
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+
+    # Verify header is present
+    assert ubproject_content.startswith("# This file is auto-generated")
+
+    # Check against snapshot
     assert ubproject_content == snapshot
     app.cleanup()

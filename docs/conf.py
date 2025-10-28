@@ -24,8 +24,9 @@ version = release = _project_data["version"]
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
-    "sphinx.ext.extlinks",
+    "sphinx_design",
     "sphinx_needs",
+    "sphinx.ext.extlinks",
 ]
 
 # exclude_patterns = []
@@ -78,3 +79,8 @@ extlinks = {
         "issue #%s",
     ),
 }
+
+# Make common links available throughout the documentation
+rst_epilog = """
+.. |ubcode| replace:: `ubCode / ubc <https://ubcode.useblocks.com/>`__
+"""

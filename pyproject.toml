@@ -40,7 +40,7 @@ dev = [
   "tox-uv>=1.0",
   "tox>=4.0",
 ]
-docs = ["furo>=2025.9.25", "sphinx>=4.0"]
+docs = ["furo>=2025.9.25", "sphinx>=4.0", "sphinx-design>=0.6.1"]
 
 [tool.ruff]
 target-version = "py310"
