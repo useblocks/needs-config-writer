@@ -10,6 +10,8 @@ Tools like ubCode / ubc require a declarative format to ingest configuration.
 This extension tries to bridge the gap between Sphinx's dynamic Python configuration and
 the need for a static configuration file.
 
+
+
 Contents
 --------
 

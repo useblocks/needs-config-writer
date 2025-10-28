@@ -9,6 +9,8 @@ Configuration Options
 
 All configuration options are set in your Sphinx ``conf.py`` file.
 
+.. _`config_outpath`:
+
 needscfg_outpath
 ~~~~~~~~~~~~~~~~
 
@@ -44,6 +46,8 @@ Relative paths are interpreted relative to the configuration directory (where ``
    # Absolute path
    needscfg_outpath = "/absolute/path/to/ubproject.toml"
 
+.. _`config_warn_on_diff`:
+
 needscfg_warn_on_diff
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -58,7 +62,7 @@ When enabled and the output file already exists:
 
 - The extension compares the existing file content with the new content
 - If they differ, emits a warning (subtype: ``content_diff``)
-- Whether the file is updated depends on ``needscfg_overwrite``
+- Whether the file is updated depends on :ref:`config_overwrite`
 
 **Behavior:**
 
@@ -76,6 +80,8 @@ When enabled and the output file already exists:
    needscfg_warn_on_diff = True
 
 .. tip:: Enable this in CI/CD pipelines to detect unexpected configuration changes.
+
+.. _`config_overwrite`:
 
 needscfg_overwrite
 ~~~~~~~~~~~~~~~~~~
@@ -103,9 +109,11 @@ Controls whether to overwrite an existing output file when the configuration con
 
 .. note::
 
-   When ``needscfg_overwrite = False`` and content differs, the extension will log an info
+   When :ref:`config_overwrite` is ``False`` and content differs, the extension will log an info
    message but not update the file. This is useful to prevent accidentally overwriting
    manually edited configuration files.
+
+.. _`config_write_all`:
 
 needscfg_write_all
 ~~~~~~~~~~~~~~~~~~
@@ -147,7 +155,7 @@ Configuration Export Process
 2. **Filtering:** Removes unsupported types that cannot be serialized to TOML (e.g., ``None`` values, functions)
 3. **Conversion:** Converts special types (e.g., ``Path`` objects to strings) with warnings
 4. **Sorting:** Sorts all data structures (dicts, lists, sets) for reproducible output
-5. **Comparison:** If file exists and ``needscfg_warn_on_diff = True``, compares existing content with new content
+5. **Comparison:** If file exists and :ref:`config_warn_on_diff` is ``True``, compares existing content with new content
 6. **Writing:** Writes the TOML file to the specified output path
 
 Type Handling
@@ -210,9 +218,9 @@ The extension follows this lifecycle during Sphinx builds:
    - Reads existing file content
    - Compares with new configuration content
    - If content matches: Logs info message, no file write
-   - If content differs and ``needscfg_warn_on_diff = True``: Emits warning
-   - If content differs and ``needscfg_overwrite = True``: Writes file, logs info
-   - If content differs and ``needscfg_overwrite = False``: Does not write file, logs info
+   - If content differs and :ref:`config_warn_on_diff` is ``True``: Emits warning
+   - If content differs and :ref:`config_overwrite` is ``True``: Writes file, logs info
+   - If content differs and :ref:`config_overwrite` is ``False``: Does not write file, logs info
 
 4. **File Creation:** If output file doesn't exist, creates parent directories and writes file
 
@@ -223,14 +231,14 @@ The extension generates warnings for:
 
 - **Path conversions:** When ``Path`` objects are converted to strings
 - **Unsupported types:** When configuration values cannot be serialized to TOML
-- **Content differences:** When existing file content differs from new configuration (if ``needscfg_warn_on_diff = True``)
+- **Content differences:** When existing file content differs from new configuration (if :ref:`config_warn_on_diff` is ``True``)
 
 Info messages are logged for:
 
 - File creation
-- File updates (when content changes and ``needscfg_overwrite = True``)
+- File updates (when content changes and :ref:`config_overwrite` is ``True``)
 - Unchanged configuration (when content matches)
-- Skipped updates (when content differs but ``needscfg_overwrite = False``)
+- Skipped updates (when content differs but :ref:`config_overwrite` is ``False``)
 
 Example Configurations
 ----------------------
