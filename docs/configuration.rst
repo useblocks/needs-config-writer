@@ -239,6 +239,87 @@ The default list excludes:
    written to the output file, potentially creating circular dependencies or
    duplicate configurations.
 
+.. _`config_merge_toml_files`:
+
+needscfg_merge_toml_files
+-------------------------
+
+**Type:** ``list[str]``
+
+**Default:** ``[]`` (empty list)
+
+Specifies a list of TOML file paths to shallow-merge into the final output configuration.
+This allows you to include additional configuration from external TOML files into the
+generated ``ubproject.toml``.
+
+The paths support the same template variables as :ref:`config_outpath`:
+
+- ``${outdir}`` - Replaced with the Sphinx output directory (build directory)
+- ``${srcdir}`` - Replaced with the Sphinx source directory
+
+Relative paths are interpreted relative to the configuration directory (where ``conf.py`` is located).
+
+**Merge behavior:**
+
+- Files are processed in the order they appear in the list
+- Each file is shallow-merged (top-level keys only) into the configuration
+- If a TOML file has a ``[needs]`` table, only that table is merged
+- If no ``[needs]`` table exists, the entire file content is merged
+- Values from merged files **override** values from the Sphinx configuration
+- Later files in the list override earlier files
+
+**Use cases:**
+
+- Add project-specific metadata not available in Sphinx config
+- Include version information from separate TOML files
+- Merge team-wide configuration standards
+- Add deployment-specific settings
+
+**Examples:**
+
+.. code-block:: python
+
+   # Merge a single additional configuration file
+   needscfg_merge_toml_files = ["additional_config.toml"]
+
+   # Merge multiple files (processed in order)
+   needscfg_merge_toml_files = [
+       "${srcdir}/team_defaults.toml",
+       "project_overrides.toml",
+   ]
+
+   # Use build output directory
+   needscfg_merge_toml_files = ["${outdir}/generated_metadata.toml"]
+
+**Example TOML file with needs table:**
+
+.. code-block:: toml
+
+   # additional_config.toml
+   [needs]
+   project_version = "1.2.3"
+   build_date = "2025-10-28"
+
+**Example TOML file without needs table:**
+
+.. code-block:: toml
+
+   # additional_config.toml
+   project_version = "1.2.3"
+   build_date = "2025-10-28"
+
+Both formats work - if a ``[needs]`` table exists, only its contents are merged.
+
+.. note::
+
+   If a merge file doesn't exist, a warning is emitted but the build continues.
+   Failed file loads (e.g., invalid TOML syntax) also emit warnings without stopping the build.
+
+.. tip::
+
+   Use this feature to separate dynamic configuration (like version numbers or build metadata)
+   from static Sphinx-Needs configuration in ``conf.py``.
+
 Examples
 --------
 

@@ -27,7 +27,12 @@ classifiers = [
   "Topic :: Utilities",
   "Framework :: Sphinx :: Extension",
 ]
-dependencies = ["sphinx>=4.0", "sphinx-needs>4.2.0", "tomli-w>=1.2.0"]
+dependencies = [
+  "sphinx>=4.0",
+  "sphinx-needs>4.2.0",
+  "tomli>=2.3.0",
+  "tomli-w>=1.2.0",
+]
 
 [dependency-groups]
 dev = [
