@@ -22,6 +22,7 @@ def test_basic(
             "sphinx_needs",
             "needs_config_writer",
         ]
+        needs_build_json = True
         """
     )
     index_rst = textwrap.dedent(
@@ -88,6 +89,53 @@ def test_no_hash(
     warnings = (
         strip_colors(app._warning.getvalue())
         .replace(str(app.srcdir) + os.path.sep, "<srcdir>/")
+        .splitlines()
+    )
+    assert not warnings
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+    assert ubproject_content == snapshot
+    app.cleanup()
+
+
+def test_write_defaults(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+    snapshot,
+) -> None:
+    """Test that needscfg_write_defaults=True includes default values."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_write_defaults = True
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+    warnings = (
+        strip_colors(app._warning.getvalue())
+        .replace(str(app.srcdir) + os.path.sep, "<srcdir>/")
+        .replace("\\", "/")  # Normalize Windows backslashes
         .splitlines()
     )
     assert not warnings

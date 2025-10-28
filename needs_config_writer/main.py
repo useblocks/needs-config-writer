@@ -145,6 +145,7 @@ def write_ubproject_file(app: Sphinx, exception):
             return tuple(sort_for_reproducibility(item, path) for item in obj)
         return obj
 
+    raw_needs_config = {x for x in app.config._raw_config if x.startswith("needs_")}
     need_attributes = {}
     for attribute, value in vars(app.config).items():
         if attribute.startswith("needs_"):
@@ -152,7 +153,11 @@ def write_ubproject_file(app: Sphinx, exception):
             safe_value = get_safe_config(value, f"needs.{config_name}")
             # Only include serializable values (None means filtered out)
             if safe_value is not None:
-                need_attributes[config_name] = safe_value
+                if app.config.needscfg_write_defaults:
+                    need_attributes[config_name] = safe_value
+                else:
+                    if attribute in raw_needs_config:
+                        need_attributes[config_name] = safe_value
 
     # Calculate SHA1 hash of the needs configuration
     # Sort all data structures to ensure reproducible hash
@@ -226,6 +231,7 @@ def setup(app: Sphinx):
         description="Whether to update existing ubproject.toml files.",
     )
     app.add_config_value("needscfg_use_hash", True, "html", types=[bool])
+    app.add_config_value("needscfg_write_defaults", False, "html", types=[bool])
     app.add_config_value(
         "needscfg_outpath",
         "${outdir}/ubproject.toml",
