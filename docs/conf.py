@@ -24,6 +24,7 @@ version = release = _project_data["version"]
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
+    "sphinx.ext.extlinks",
     "sphinx_needs",
 ]
 
@@ -69,3 +70,11 @@ html_css_files = ["furo.css"]
 
 # Sphinx-Needs configuration
 needs_from_toml = "ubproject.toml"
+
+extlinks = {
+    "pr": ("https://github.com/useblocks/needs-config-writer/pull/%s", "PR #%s"),
+    "issue": (
+        "https://github.com/useblocks/needs-config-writer/issues/%s",
+        "issue #%s",
+    ),
+}
