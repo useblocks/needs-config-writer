@@ -9,6 +9,8 @@ Configuration Options
 
 All configuration options are set in your Sphinx ``conf.py`` file.
 
+.. _`config_outpath`:
+
 needscfg_outpath
 ~~~~~~~~~~~~~~~~
 
@@ -44,85 +46,77 @@ Relative paths are interpreted relative to the configuration directory (where ``
    # Absolute path
    needscfg_outpath = "/absolute/path/to/ubproject.toml"
 
-needscfg_use_hash
-~~~~~~~~~~~~~~~~~
+.. _`config_warn_on_diff`:
+
+needscfg_warn_on_diff
+~~~~~~~~~~~~~~~~~~~~~
 
 **Type:** ``bool``
 
-**Default:** ``True``
+**Default:** ``False``
 
-Controls whether to generate and include a SHA1 hash of the configuration in the output file.
+Controls whether to emit a warning when the existing output file content differs from the
+new configuration being generated.
 
-When enabled, the extension:
+When enabled and the output file already exists:
 
-1. Calculates a SHA1 hash of the needs configuration
-2. Adds a ``[meta]`` section with ``needs_hash`` to the output file
-3. Compares the hash with existing files to detect changes
+- The extension compares the existing file content with the new content
+- If they differ, emits a warning (subtype: ``content_diff``)
+- Whether the file is updated depends on :ref:`config_overwrite`
 
-The hash is calculated from the sorted and normalized configuration to ensure reproducibility
-regardless of the order in which configuration values are defined in ``conf.py``.
+**Behavior:**
+
+- ``False`` (default): No warning is emitted when content changes
+- ``True``: Emits a warning when existing file content differs from new configuration
 
 **Examples:**
 
 .. code-block:: python
 
-   # Enable hash generation (default)
-   needscfg_use_hash = True
+   # No warning on content changes (default)
+   needscfg_warn_on_diff = False
 
-   # Disable hash generation
-   needscfg_use_hash = False
+   # Warn when configuration changes
+   needscfg_warn_on_diff = True
 
-**Output with hash:**
+.. tip:: Enable this in CI/CD pipelines to detect unexpected configuration changes.
 
-.. code-block:: toml
-
-   [meta]
-   needs_hash = "a1b2c3d4e5f6..."
-
-   [needs]
-   # ... configuration ...
-
-**Output without hash:**
-
-.. code-block:: toml
-
-   [needs]
-   # ... configuration ...
+.. _`config_overwrite`:
 
 needscfg_overwrite
 ~~~~~~~~~~~~~~~~~~
 
 **Type:** ``bool``
 
-**Default:** ``False``
+**Default:** ``True``
 
-Controls whether to overwrite an existing output file when the configuration has changed.
-
-This option only takes effect when ``needscfg_use_hash = True`` and the hash of the new
-configuration differs from the existing file's hash.
+Controls whether to overwrite an existing output file when the configuration content differs.
 
 **Behavior:**
 
-- ``False`` (default): Issues a warning about hash mismatch but does not overwrite the file
-- ``True``: Overwrites the file with the new configuration and logs an info message
+- ``True`` (default): Overwrites the file when content differs
+- ``False``: Does not overwrite the file when content differs (logs info message instead)
 
 **Examples:**
 
 .. code-block:: python
 
-   # Warn but don't overwrite (default)
-   needscfg_overwrite = False
-
-   # Automatically update when configuration changes
+   # Automatically update when configuration changes (default)
    needscfg_overwrite = True
+
+   # Prevent overwriting existing files
+   needscfg_overwrite = False
 
 .. note::
 
-   When ``needscfg_use_hash = False``, files are always written on each build regardless
-   of this setting.
+   When :ref:`config_overwrite` is ``False`` and content differs, the extension will log an info
+   message but not update the file. This is useful to prevent accidentally overwriting
+   manually edited configuration files.
 
-needscfg_write_defaults
-~~~~~~~~~~~~~~~~~~~~~~~
+.. _`config_write_all`:
+
+needscfg_write_all
+~~~~~~~~~~~~~~~~~~
 
 **Type:** ``bool``
 
@@ -141,10 +135,10 @@ only explicitly configured values.
 .. code-block:: python
 
    # Write only explicitly configured values (default)
-   needscfg_write_defaults = False
+   needscfg_write_all = False
 
    # Write all configuration including defaults
-   needscfg_write_defaults = True
+   needscfg_write_all = True
 
 .. tip::
 
@@ -161,7 +155,7 @@ Configuration Export Process
 2. **Filtering:** Removes unsupported types that cannot be serialized to TOML (e.g., ``None`` values, functions)
 3. **Conversion:** Converts special types (e.g., ``Path`` objects to strings) with warnings
 4. **Sorting:** Sorts all data structures (dicts, lists, sets) for reproducible output
-5. **Hashing:** Optionally calculates SHA1 hash of the configuration
+5. **Comparison:** If file exists and :ref:`config_warn_on_diff` is ``True``, compares existing content with new content
 6. **Writing:** Writes the TOML file to the specified output path
 
 Type Handling
@@ -198,7 +192,7 @@ Lists are sorted based on their content type and path in the configuration:
 
 - ``external_needs``: Sorted by ``id_prefix`` field
 - ``extra_links``: Sorted by ``option`` field
-- ``extra_options``: Sorted as primitives
+- ``extra_options``: Dynamically sorted - if list of strings, sorted as primitives; if list of dicts, sorted by ``name`` field
 - ``flow_link_types``: Sorted as primitives
 - ``json_exclude_fields``: Sorted as primitives
 - ``statuses``: Sorted by ``name`` field
@@ -207,6 +201,20 @@ Lists are sorted based on their content type and path in the configuration:
 - ``variant_options``: Sorted as primitives
 
 Other lists preserve their original order but nested structures are still sorted.
+
+.. note::
+
+   The ``extra_options`` configuration supports two formats:
+
+   - **List of strings**: ``needs_extra_options = ["component", "security", "version"]``
+
+     Sorted alphabetically as primitives.
+
+   - **List of dictionaries**: ``needs_extra_options = [dict(name="component", ...), dict(name="security", ...), ...]``
+
+     Sorted alphabetically by the ``name`` field.
+
+   The extension automatically detects the format and applies the appropriate sorting strategy.
 
 **Set Sorting:**
 
@@ -219,13 +227,14 @@ The extension follows this lifecycle during Sphinx builds:
 
 1. **Build Start:** Extension is initialized after all configuration is loaded
 2. **Config Initialized:** The ``write_ubproject_file`` function is called (priority 999)
-3. **Hash Check:** If the output file exists and ``needscfg_use_hash = True``:
+3. **Content Check:** If the output file exists:
 
-   - Reads existing file and extracts hash
-   - Compares with new configuration hash
-   - If hashes match: Logs info message, no file write
-   - If hashes differ and ``needscfg_overwrite = False``: Logs warning, no file write
-   - If hashes differ and ``needscfg_overwrite = True``: Overwrites file, logs info
+   - Reads existing file content
+   - Compares with new configuration content
+   - If content matches: Logs info message, no file write
+   - If content differs and :ref:`config_warn_on_diff` is ``True``: Emits warning
+   - If content differs and :ref:`config_overwrite` is ``True``: Writes file, logs info
+   - If content differs and :ref:`config_overwrite` is ``False``: Does not write file, logs info
 
 4. **File Creation:** If output file doesn't exist, creates parent directories and writes file
 
@@ -236,13 +245,14 @@ The extension generates warnings for:
 
 - **Path conversions:** When ``Path`` objects are converted to strings
 - **Unsupported types:** When configuration values cannot be serialized to TOML
-- **Hash mismatches:** When existing file hash differs from new configuration (if ``needscfg_overwrite = False``)
+- **Content differences:** When existing file content differs from new configuration (if :ref:`config_warn_on_diff` is ``True``)
 
 Info messages are logged for:
 
 - File creation
-- File updates (when ``needscfg_overwrite = True``)
-- Unchanged configuration (when hashes match)
+- File updates (when content changes and :ref:`config_overwrite` is ``True``)
+- Unchanged configuration (when content matches)
+- Skipped updates (when content differs but :ref:`config_overwrite` is ``False``)
 
 Example Configurations
 ----------------------
@@ -258,8 +268,8 @@ Minimal Setup
        "needs_config_writer",
    ]
 
-This will write the configuration to ``${outdir}/ubproject.toml`` with hash generation enabled,
-but will not overwrite existing files.
+This will write the configuration to ``${outdir}/ubproject.toml``, updating it whenever
+the configuration changes.
 
 Development Setup
 ~~~~~~~~~~~~~~~~~
@@ -272,12 +282,10 @@ Development Setup
        "needs_config_writer",
    ]
 
-   needscfg_use_hash = True
-   needscfg_overwrite = True
    needscfg_outpath = "${srcdir}/ubproject.toml"
 
-This configuration automatically updates the file in the source directory whenever
-configuration changes, useful during development.
+This configuration writes the file to the source directory, useful during development
+to keep configuration in version control.
 
 Full Configuration Export
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -290,11 +298,10 @@ Full Configuration Export
        "needs_config_writer",
    ]
 
-   needscfg_write_defaults = True
-   needscfg_use_hash = False
+   needscfg_write_all = True
    needscfg_outpath = "${outdir}/full_config.toml"
 
-This exports the complete configuration including all defaults, without hash checking.
+This exports the complete configuration including all defaults.
 
 CI/CD Setup
 ~~~~~~~~~~~
@@ -307,9 +314,26 @@ CI/CD Setup
        "needs_config_writer",
    ]
 
-   needscfg_use_hash = True
+   needscfg_warn_on_diff = True
    needscfg_overwrite = False
    needscfg_outpath = "${outdir}/ubproject.toml"
 
-Default settings are appropriate for CI/CD: generates hash for verification but doesn't
-overwrite, allowing you to catch configuration drift.
+This configuration emits warnings when configuration changes and prevents overwriting,
+allowing you to catch unexpected configuration drift in CI/CD pipelines.
+
+Protected Configuration Setup
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   # conf.py
+   extensions = [
+       "sphinx_needs",
+       "needs_config_writer",
+   ]
+
+   needscfg_overwrite = False
+   needscfg_outpath = "${srcdir}/ubproject.toml"
+
+This configuration prevents overwriting an existing configuration file, useful when you
+want to maintain a manually edited configuration file in version control.

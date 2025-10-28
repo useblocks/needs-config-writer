@@ -3,7 +3,7 @@
 Changelog
 =========
 
-.. _`unreleased`:
+.. _unreleased:
 
 Unreleased
 ----------

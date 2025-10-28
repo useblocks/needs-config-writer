@@ -7,7 +7,6 @@ from typing import Any
 import pytest
 from sphinx.testing.util import SphinxTestApp
 from sphinx.util.console import strip_colors
-import tomli
 
 
 def test_basic(
@@ -55,65 +54,20 @@ def test_basic(
     app.cleanup()
 
 
-def test_no_hash(
-    tmpdir: Path,
-    make_app: Callable[[], SphinxTestApp],
-    write_fixture_files: Callable[[Path, dict[str, Any]], None],
-    snapshot,
-) -> None:
-    conf_py = textwrap.dedent(
-        """
-        extensions = [
-            "sphinx_needs",
-            "needs_config_writer",
-        ]
-        needscfg_use_hash = False
-        """
-    )
-    index_rst = textwrap.dedent(
-        """
-        Headline
-        ========
-        """
-    )
-    file_contents: dict[str, str] = {
-        "conf": conf_py,
-        "rst": index_rst,
-    }
-    write_fixture_files(tmpdir, file_contents)
-
-    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
-    app.build()
-
-    assert app.statuscode == 0
-    warnings = (
-        strip_colors(app._warning.getvalue())
-        .replace(str(app.srcdir) + os.path.sep, "<srcdir>/")
-        .splitlines()
-    )
-    assert not warnings
-
-    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
-    assert path_ubproject.exists()
-    ubproject_content = path_ubproject.read_text("utf8")
-    assert ubproject_content == snapshot
-    app.cleanup()
-
-
 def test_write_defaults(
     tmpdir: Path,
     make_app: Callable[[], SphinxTestApp],
     write_fixture_files: Callable[[Path, dict[str, Any]], None],
     snapshot,
 ) -> None:
-    """Test that needscfg_write_defaults=True includes default values."""
+    """Test that needscfg_write_all=True includes default values."""
     conf_py = textwrap.dedent(
         """
         extensions = [
             "sphinx_needs",
             "needs_config_writer",
         ]
-        needscfg_write_defaults = True
+        needscfg_write_all = True
         """
     )
     index_rst = textwrap.dedent(
@@ -147,46 +101,114 @@ def test_write_defaults(
     app.cleanup()
 
 
-def test_hash_sorting(
+@pytest.mark.parametrize(
+    ("conf_py_1", "conf_py_2"),
+    [
+        # Test sorting of statuses by name field
+        (
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_statuses = [
+                dict(name="open", description="Nothing done yet"),
+                dict(name="in progress", description="Someone is working on it"),
+                dict(name="implemented", description="Work is done and implemented"),
+            ]
+            needs_build_json = True
+            """,
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_statuses = [
+                dict(name="implemented", description="Work is done and implemented"),
+                dict(name="open", description="Nothing done yet"),
+                dict(name="in progress", description="Someone is working on it"),
+            ]
+            needs_build_json = True
+            """,
+        ),
+        # Test sorting of types by title field
+        (
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_types = [
+                dict(directive="req", title="Requirement", prefix="R_"),
+                dict(directive="spec", title="Specification", prefix="S_"),
+                dict(directive="impl", title="Implementation", prefix="I_"),
+            ]
+            """,
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_types = [
+                dict(directive="spec", title="Specification", prefix="S_"),
+                dict(directive="impl", title="Implementation", prefix="I_"),
+                dict(directive="req", title="Requirement", prefix="R_"),
+            ]
+            """,
+        ),
+        # Test sorting of extra_options as list of strings
+        (
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_extra_options = ["component", "security", "version"]
+            """,
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_extra_options = ["version", "component", "security"]
+            """,
+        ),
+        # Test sorting of extra_options as list of dicts by name field
+        (
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_extra_options = [
+                dict(name="component", description="Component name"),
+                dict(name="security", description="Security level"),
+                dict(name="version", description="Version number"),
+            ]
+            """,
+            """
+            extensions = [
+                "sphinx_needs",
+                "needs_config_writer",
+            ]
+            needs_extra_options = [
+                dict(name="version", description="Version number"),
+                dict(name="component", description="Component name"),
+                dict(name="security", description="Security level"),
+            ]
+            """,
+        ),
+    ],
+    ids=["statuses", "types", "extra_options_strings", "extra_options_dicts"],
+)
+def test_sorting(
     tmpdir: Path,
     make_app: Callable[[], SphinxTestApp],
     write_fixture_files: Callable[[Path, dict[str, Any]], None],
+    conf_py_1: str,
+    conf_py_2: str,
 ) -> None:
-    """Test that configuration sorting produces the same hash regardless of definition order."""
-    # First configuration with items in one order
-    conf_py_1 = textwrap.dedent(
-        """
-        extensions = [
-            "sphinx_needs",
-            "needs_config_writer",
-        ]
-        needs_statuses = [
-            dict(name="open", description="Nothing done yet"),
-            dict(name="in progress", description="Someone is working on it"),
-            dict(name="implemented", description="Work is done and implemented"),
-        ]
-        needs_build_json = True
-        needscfg_use_hash = True
-        """
-    )
-
-    # Second configuration with same items but different order
-    conf_py_2 = textwrap.dedent(
-        """
-        extensions = [
-            "sphinx_needs",
-            "needs_config_writer",
-        ]
-        needs_statuses = [
-            dict(name="implemented", description="Work is done and implemented"),
-            dict(name="open", description="Nothing done yet"),
-            dict(name="in progress", description="Someone is working on it"),
-        ]
-        needs_build_json = True
-        needscfg_use_hash = True
-        """
-    )
-
+    """Test that configuration sorting produces the same output regardless of definition order."""
     index_rst = textwrap.dedent(
         """
         Headline
@@ -198,7 +220,7 @@ def test_hash_sorting(
     tmpdir1 = tmpdir / "build1"
     tmpdir1.mkdir()
     file_contents_1: dict[str, str] = {
-        "conf": conf_py_1,
+        "conf": textwrap.dedent(conf_py_1),
         "rst": index_rst,
     }
     write_fixture_files(tmpdir1, file_contents_1)
@@ -212,18 +234,13 @@ def test_hash_sorting(
     assert path_ubproject_1.exists()
     content_1 = path_ubproject_1.read_text("utf8")
 
-    # Extract hash from first build's [meta] section
-    data_1 = tomli.loads(content_1)
-    hash_1 = data_1.get("meta", {}).get("needs_hash")
-    assert hash_1 is not None, "Hash not found in [meta] section"
-
     app1.cleanup()
 
     # Build with second configuration (different order)
     tmpdir2 = tmpdir / "build2"
     tmpdir2.mkdir()
     file_contents_2: dict[str, str] = {
-        "conf": conf_py_2,
+        "conf": textwrap.dedent(conf_py_2),
         "rst": index_rst,
     }
     write_fixture_files(tmpdir2, file_contents_2)
@@ -237,34 +254,26 @@ def test_hash_sorting(
     assert path_ubproject_2.exists()
     content_2 = path_ubproject_2.read_text("utf8")
 
-    # Extract hash from second build's [meta] section
-    data_2 = tomli.loads(content_2)
-    hash_2 = data_2.get("meta", {}).get("needs_hash")
-    assert hash_2 is not None, "Hash not found in [meta] section"
-
     app2.cleanup()
 
-    # Hashes should be identical despite different definition order
-    assert hash_1 == hash_2, f"Hashes differ: {hash_1} != {hash_2}"
-
-    # The actual content (after sorting) should also be identical
-    assert data_1 == data_2
+    # Content should be identical despite different definition order
+    assert content_1 == content_2
 
 
-def test_hash_overwrite(
+def test_warn_on_diff(
     tmpdir: Path,
     make_app: Callable[[], SphinxTestApp],
     write_fixture_files: Callable[[Path, dict[str, Any]], None],
     snapshot,
 ) -> None:
+    """Test that needscfg_warn_on_diff emits a warning when content differs."""
     conf_py = textwrap.dedent(
         """
         extensions = [
             "sphinx_needs",
             "needs_config_writer",
         ]
-        needscfg_use_hash = True
-        needscfg_overwrite = True
+        needscfg_warn_on_diff = True
         """
     )
     index_rst = textwrap.dedent(
@@ -296,14 +305,14 @@ def test_hash_overwrite(
     assert ubproject_content == snapshot
     app.cleanup()
 
+    # Second build with different config - should emit warning
     conf_py2 = textwrap.dedent(
         """
         extensions = [
             "sphinx_needs",
             "needs_config_writer",
         ]
-        needscfg_use_hash = True
-        needscfg_overwrite = True
+        needscfg_warn_on_diff = True
         needs_build_json = True
         """
     )
@@ -319,87 +328,194 @@ def test_hash_overwrite(
     )
     assert warnings2 == snapshot
 
-    path_ubproject = Path(app2.builder.outdir, "ubproject.toml")
-    assert path_ubproject.exists()
-    ubproject_content = path_ubproject.read_text("utf8")
-    assert ubproject_content == snapshot
-    app2.cleanup()
-
-
-def test_hash_not_overwrite(
-    tmpdir: Path,
-    make_app: Callable[[], SphinxTestApp],
-    write_fixture_files: Callable[[Path, dict[str, Any]], None],
-    snapshot,
-) -> None:
-    conf_py = textwrap.dedent(
-        """
-        extensions = [
-            "sphinx_needs",
-            "needs_config_writer",
-        ]
-        needscfg_use_hash = True
-        needscfg_overwrite = False
-        """
-    )
-    index_rst = textwrap.dedent(
-        """
-        Headline
-        ========
-        """
-    )
-    file_contents: dict[str, str] = {
-        "conf": conf_py,
-        "rst": index_rst,
-    }
-    write_fixture_files(tmpdir, file_contents)
-
-    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
-    app.build()
-
-    assert app.statuscode == 0
-    warnings = (
-        strip_colors(app._warning.getvalue())
-        .replace(str(app.srcdir) + os.path.sep, "<srcdir>/")
-        .splitlines()
-    )
-    assert not warnings
-
-    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
-    assert path_ubproject.exists()
-    ubproject_content = path_ubproject.read_text("utf8")
-    assert ubproject_content == snapshot
-    app.cleanup()
-
-    conf_py2 = textwrap.dedent(
-        """
-        extensions = [
-            "sphinx_needs",
-            "needs_config_writer",
-        ]
-        needscfg_use_hash = True
-        needscfg_overwrite = False
-        needs_build_json = True
-        """
-    )
-    write_fixture_files(tmpdir, {"conf": conf_py2})
-    app2: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
-    app2.build()
-    assert app2.statuscode == 0
-    warnings2 = (
-        strip_colors(app2._warning.getvalue())
-        .replace(str(app2.srcdir) + os.path.sep, "<srcdir>/")
-        .replace("\\", "/")  # Normalize Windows backslashes
-        .splitlines()
-    )
-    assert warnings2 == snapshot
-
-    # Verify that the file was NOT overwritten (content should remain the same as first run)
+    # Verify that the file WAS updated
     path_ubproject = Path(app2.builder.outdir, "ubproject.toml")
     assert path_ubproject.exists()
     ubproject_content_after = path_ubproject.read_text("utf8")
-    # Content should be identical to the first run since overwrite is False
+    assert ubproject_content_after == snapshot
+    app2.cleanup()
+
+
+def test_no_warn_on_same_content(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """Test that needscfg_warn_on_diff does not warn when content is the same."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_warn_on_diff = True
+        needs_build_json = True
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+    app.cleanup()
+
+    # Second build with same config - should NOT emit warning
+    write_fixture_files(tmpdir, file_contents)
+    app2: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app2.build()
+    assert app2.statuscode == 0
+    warnings2 = (
+        strip_colors(app2._warning.getvalue())
+        .replace(str(app2.srcdir) + os.path.sep, "<srcdir>/")
+        .replace("\\", "/")  # Normalize Windows backslashes
+        .splitlines()
+    )
+    assert not warnings2
+
+    # Content should be unchanged
+    path_ubproject_after = Path(app2.builder.outdir, "ubproject.toml")
+    assert path_ubproject_after.exists()
+    ubproject_content_after = path_ubproject_after.read_text("utf8")
     assert ubproject_content_after == ubproject_content
+    app2.cleanup()
+
+
+def test_overwrite_false(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+    snapshot,
+) -> None:
+    """Test that needscfg_overwrite=False prevents overwriting when content differs."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_overwrite = False
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+    assert ubproject_content == snapshot
+    app.cleanup()
+
+    # Second build with different config - should NOT overwrite
+    conf_py2 = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_overwrite = False
+        needs_build_json = True
+        """
+    )
+    write_fixture_files(tmpdir, {"conf": conf_py2})
+    app2: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app2.build()
+    assert app2.statuscode == 0
+
+    # Verify that the file was NOT overwritten (content should remain the same as first run)
+    path_ubproject_after = Path(app2.builder.outdir, "ubproject.toml")
+    assert path_ubproject_after.exists()
+    ubproject_content_after = path_ubproject_after.read_text("utf8")
+    assert ubproject_content_after == ubproject_content  # Should be unchanged
+    app2.cleanup()
+
+
+def test_overwrite_true(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """Test that needscfg_overwrite=True (default) overwrites when content differs."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    ubproject_content = path_ubproject.read_text("utf8")
+    app.cleanup()
+
+    # Second build with different config - should overwrite
+    conf_py2 = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_overwrite = True
+        needs_build_json = True
+        """
+    )
+    write_fixture_files(tmpdir, {"conf": conf_py2})
+    app2: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app2.build()
+    assert app2.statuscode == 0
+
+    # Verify that the file WAS overwritten (content should be different)
+    path_ubproject_after = Path(app2.builder.outdir, "ubproject.toml")
+    assert path_ubproject_after.exists()
+    ubproject_content_after = path_ubproject_after.read_text("utf8")
+    # Content should be different from first run (build_json was added)
+    assert ubproject_content_after != ubproject_content
     app2.cleanup()
 
 
