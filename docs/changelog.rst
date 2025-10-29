@@ -9,6 +9,23 @@ Changelog
    Unreleased
    ----------
 
+.. _`release:0.2.3`:
+
+0.2.3
+-----
+
+:Released: 29.10.2025
+:Full Changelog: `v0.2.2...v0.2.3 <https://github.com/useblocks/needs-config-writer/compare/0.2.2...7cae413>`__
+
+- ✨ New config needscfg_exclude_defaults (:pr:`20`)
+
+  A new configuration option ``needscfg_exclude_defaults`` was added to
+  control whether default Sphinx-Needs configuration values should be
+  excluded from the exported TOML file.
+
+  This allows to generate cleaner configuration files by omitting
+  settings that are already at their default values.
+
 .. _`release:0.2.2`:
 
 0.2.2
