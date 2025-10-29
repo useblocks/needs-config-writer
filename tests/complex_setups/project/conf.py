@@ -17,3 +17,6 @@ needscfg_write_all = True
 
 needscfg_warn_on_diff = True
 """Be sure to update this - running Sphinx with -W will fail the CI, that's wanted."""
+
+needscfg_exclude_defaults = True
+"""Do not write default values into the generated config file."""

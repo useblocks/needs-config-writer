@@ -320,6 +320,59 @@ Both formats work - if a ``[needs]`` table exists, only its contents are merged.
    Use this feature to separate dynamic configuration (like version numbers or build metadata)
    from static Sphinx-Needs configuration in ``conf.py``.
 
+.. _`config_exclude_defaults`:
+
+needscfg_exclude_defaults
+-------------------------
+
+**Type:** ``bool``
+
+**Default:** ``False``
+
+Controls whether to exclude configuration options that are set to their default values.
+
+When enabled, the extension compares each Sphinx-Needs configuration value with its default
+value. If they match, the option is excluded from the output file.
+
+**Behavior:**
+
+- ``False`` (default): Include all configuration values (subject to :ref:`config_write_all` and :ref:`config_exclude_vars`)
+- ``True``: Exclude configuration values that match their default values
+
+**Use cases:**
+
+- Generate cleaner configuration files with only explicitly set values
+- Reduce noise in version-controlled configuration files
+- Make it easier to see what's been customized vs. defaults
+- Minimize file size for generated configuration
+
+**Examples:**
+
+.. code-block:: python
+
+   # Include all values, even defaults (default behavior)
+   needscfg_exclude_defaults = False
+
+   # Exclude values that match defaults
+   needscfg_exclude_defaults = True
+   needscfg_write_all = True  # Usually combined with write_all
+
+.. note::
+
+   This option works in combination with :ref:`config_write_all`:
+
+   - When ``needscfg_write_all = False``: Only explicitly set values are included (default behavior)
+   - When ``needscfg_write_all = True`` and ``needscfg_exclude_defaults = False``:
+     All values including defaults are  included
+   - When ``needscfg_write_all = True`` and ``needscfg_exclude_defaults = True``:
+     All values are considered but defaults are filtered out
+
+.. tip::
+
+   Enable both ``needscfg_write_all`` and ``needscfg_exclude_defaults`` to generate
+   configuration that includes all customized values while excluding unchanged defaults.
+   This provides a clean view of what's been explicitly configured.
+
 Examples
 --------
 

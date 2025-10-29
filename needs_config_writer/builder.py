@@ -228,6 +228,14 @@ def write_needscfg_file(
             safe_value = get_safe_config(value, f"needs.{config_name}")
             # Only include serializable values (None means filtered out)
             if safe_value is not None:
+                # Check if we should exclude default values
+                if config.needscfg_exclude_defaults and attribute in config._options:
+                    # Get the default value from config options registry
+                    default_value = config._options[attribute].default
+                    # Compare current value with default value
+                    if value == default_value:
+                        continue
+
                 if config.needscfg_write_all:
                     need_attributes[config_name] = safe_value
                 else:

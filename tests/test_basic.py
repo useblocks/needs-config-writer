@@ -1207,3 +1207,66 @@ def test_merge_toml_missing_file_warning(
     assert path_ubproject.exists()
 
     app.cleanup()
+
+
+def test_exclude_defaults(tmpdir, make_app, write_fixture_files, snapshot):
+    """
+    Test that needscfg_exclude_defaults excludes options set to their default values.
+    """
+    conf_py = textwrap.dedent(
+        """
+        extensions = ["sphinx_needs", "needs_config_writer"]
+
+        # Enable writing all options
+        needscfg_write_all = True
+
+        # Enable excluding defaults
+        needscfg_exclude_defaults = True
+
+        # Customize only one option - leave others at defaults
+        needs_types = [
+            {"directive": "story", "title": "User Story", "prefix": "ST_", "color": "#BFD8D2"},
+            {"directive": "spec", "title": "Specification", "prefix": "SP_", "color": "#FEDCD2"},
+        ]
+        # set explicitly to default value
+        needs_id_regex = "^[A-Z0-9_]{5,}"
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Test Exclude Defaults
+        =====================
+
+        .. story:: My Story
+           :id: STORY_001
+           :tags: test
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+
+    content = path_ubproject.read_text()
+
+    # The customized option should be present
+    assert 'directive = "story"' in content
+    assert 'title = "Specification"' in content
+
+    # Default values should NOT be present when needscfg_exclude_defaults is True
+    # Check for some common Sphinx-Needs options that have defaults
+    # These would normally be included with needscfg_write_all=True
+    assert "statuses" not in content  # Has default value
+    assert "tags" not in content  # Has default value (empty list)
+    assert "id_regex" not in content  # Has default value (regex pattern)
+
+    app.cleanup()
