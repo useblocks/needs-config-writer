@@ -10,6 +10,11 @@ Tools like ubCode / ubc require a declarative format to ingest configuration.
 This extension tries to bridge the gap between Sphinx's dynamic Python configuration and
 the need for a static configuration file.
 
+The extension provides:
+
+- Automatic generation during documentation builds via the ``env-before-read-docs`` event.
+- A dedicated ``needscfg`` builder for standalone configuration file generation.
+
 **Contents**
 
 .. toctree::

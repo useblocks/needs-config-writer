@@ -151,7 +151,16 @@ File lifecycle
 The extension follows this lifecycle during Sphinx builds:
 
 1. **Build start:** Extension is initialized after all configuration is loaded
-#. **Config initialized:** The ``write_ubproject_file`` function is called (priority 999)
+#. **Configuration writing:** The configuration file is written via the ``env-before-read-docs``
+   event (priority 999). This event:
+
+   - Is **always called** (even when no documents have changed)
+   - Runs **after** Sphinx-Needs has injected and resolved its configuration
+   - Runs **before** the document reading loop starts
+
+   This ensures the file is generated immediately with complete configuration, without waiting
+   for document processing.
+
 #. **Content check:** If the output file exists:
 
    - Reads existing file content
@@ -179,3 +188,29 @@ Info messages are logged for:
 - File updates (when content changes and :ref:`config_overwrite` is ``True``)
 - Unchanged configuration (when content matches)
 - Skipped updates (when content differs but :ref:`config_overwrite` is ``False``)
+
+Builder
+~~~~~~~
+
+The extension provides a dedicated Sphinx builder called ``needscfg`` that can be invoked directly
+to generate the ``ubproject.toml`` file without building documentation:
+
+.. code-block:: bash
+
+   sphinx-build -b needscfg docs/ docs/_build
+
+This builder does nothing but output the configuration file. It's useful when you only need to
+generate or update the ``ubproject.toml`` file without running a full documentation build.
+
+The builder respects all the same configuration options as the extension
+(see :doc:`configuration`) when running other builders.
+
+The output file runs late in the Sphinx event ``env-before-read-docs``.
+This ensured that the configuration is fully loaded and resolved before writing the config file.
+
+.. note::
+
+   There might be other files in the build directory when using this builder.
+   Those are produced by other extensions and can be safely ignored.
+   This extension only produces one TOML file in a path configured by
+   :ref:`config_outpath`.

@@ -76,8 +76,11 @@ template_folder = "needs_templates/"
 title_from_content = false
 title_optional = false
 types = [
+    { color = "#888888", directive = "commit", prefix = "C_", style = "card", title = "Commit" },
     { directive = "feat", prefix = "FEAT_", title = "Feature" },
     { directive = "impl", prefix = "IMPL_", title = "Implementation" },
+    { color = "#cccccc", directive = "issue", prefix = "IS_", style = "card", title = "Issue" },
+    { color = "#aaaaaa", directive = "pr", prefix = "PR_", style = "card", title = "PullRequest" },
     { directive = "req", prefix = "REQ_", title = "Requirement" },
 ]
 variant_options = []
@@ -306,6 +309,44 @@ side = [
     "<<meta_id()>>",
 ]
 
+[needs.layouts.github]
+grid = "complex"
+
+[needs.layouts.github.layout]
+footer = [
+    "service:  <<meta(\"service\")>>",
+]
+footer_left = [
+    "layout: <<meta(\"layout\")>>",
+]
+footer_right = [
+    "style: <<meta(\"style\")>>",
+]
+head = [
+    "**<<meta(\"title\")>>** (<<link(\"url\", text=\"url\", is_dynamic=True)>>)",
+]
+head_left = [
+    "<<meta_id()>>",
+    "<<collapse_button(\"meta,footer\", collapsed=\"icon:arrow-down-circle\", visible=\"icon:arrow-right-circle\", initial=True)>>",
+]
+head_right = [
+    "<<image(\"field:avatar\", width=\"40px\", align=\"middle\")>>",
+    "<<meta(\"user\")>>",
+]
+meta_left = [
+    "<<meta(\"user\", prefix=\"user: \")>>",
+    "<<meta(\"created_at\", prefix=\"created_at: \")>>",
+    "<<meta(\"updated_at\", prefix=\"updated_at: \")>>",
+    "<<meta(\"closed_at\", prefix=\"closed_at: \")>>",
+    "<<meta(\"service\", prefix=\"service: \")>>",
+    "<<link(\"url\", text=\"Link\", prefix=\"url: \", is_dynamic=True)>>",
+]
+meta_right = [
+    "<<meta(\"type_name\", prefix=\"type: \")>>",
+    "<<meta_all(no_links=True, exclude=[\"layout\",\"style\",\"user\",\"created_at\",\"updated_at\",\"closed_at\",\"service\",\"url\",\"avatar\", \"type\",\"query\",\"specific\",\"max_amount\",\"max_content_lines\",\"id_prefix\"])>>",
+    "<<meta_links_all()>>",
+]
+
 [needs.layouts.test]
 grid = "simple"
 
@@ -332,22 +373,29 @@ enum = [
     "C",
     "D",
 ]
+type = "string"
 
 [needs.schema_definitions."$defs".type-feat.properties.type]
 const = "feat"
+type = "string"
 
 [[needs.schema_definitions.schemas]]
 id = "feat"
 idx = 0
 severity = "violation"
 
+[needs.schema_definitions.schemas.select]
+type = "object"
+
 [needs.schema_definitions.schemas.select.properties.type]
 const = "feat"
+type = "string"
 
 [needs.schema_definitions.schemas.validate.local]
 required = [
     "asil",
 ]
+type = "object"
 
 [needs.schema_definitions.schemas.validate.local.properties.asil]
 enum = [
@@ -356,6 +404,7 @@ enum = [
     "C",
     "D",
 ]
+type = "string"
 
 [needs.services]
 
