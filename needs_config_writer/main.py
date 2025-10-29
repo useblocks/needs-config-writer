@@ -79,6 +79,13 @@ def setup(app: Sphinx):
         types=[list],
         description="List of TOML file paths to shallow-merge into the output configuration.",
     )
+    app.add_config_value(
+        "needscfg_exclude_defaults",
+        False,
+        "html",
+        types=[bool],
+        description="Whether to exclude configuration options that are set to their default values.",
+    )
 
     # env-before-read-docs is always called (even when no docs changed),
     # runs after Sphinx-Needs has injected configuration, and runs before
