@@ -21,14 +21,24 @@
       "justMyCode": false
     },
     {
-      "name": "Run Sphinx on docs",
+      "name": "Run Sphinx html on docs",
       "type": "debugpy",
       "request": "launch",
       "module": "sphinx",
-      "args": ["-v", "-b", "html", ".", "_build/html"],
+      "args": ["-v", "-W", "-b", "html", ".", "_build/html"],
       "console": "integratedTerminal",
-      "cwd": "${workspaceFolder}/docs",
+      "cwd": "${workspaceFolder}/tests/complex_setups/project",
       "justMyCode": false
     },
+    {
+      "name": "Run Sphinx needscfg on docs",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "sphinx",
+      "args": ["-v", "-W", "-b", "needscfg", ".", "_build/needscfg"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}/tests/complex_setups/project",
+      "justMyCode": false
+    }
   ]
 }
