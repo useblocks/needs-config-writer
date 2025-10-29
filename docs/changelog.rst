@@ -9,6 +9,30 @@ Changelog
    Unreleased
    ----------
 
+.. _`release:0.2.2`:
+
+0.2.2
+-----
+
+:Released: 29.10.2025
+:Full Changelog: `v0.2.1...v0.2.2 <https://github.com/useblocks/needs-config-writer/compare/0.2.1...dafab78>`__
+
+- ✨ New needscfg builder (:pr:`18`)
+
+  A new Sphinx builder called ``needscfg`` was added to generate the
+  ``ubproject.toml`` file without building the entire documentation.
+  This allows to quickly generate or update the configuration file as needed.
+
+  Additionally, the event for configuration collection was changed
+  from ``config-inited`` to ``env-before-read-docs`` to ensure that the Sphinx-Needs
+  configuration is fully loaded.
+
+- 👌 Print diff (:pr:`17`)
+
+  When configuration differs and :ref:`config_warn_on_diff` is ``True``,
+  the actual differences between the existing and new configuration
+  are now printed to the console for easier debugging.
+
 .. _`release:0.2.1`:
 
 0.2.1
