@@ -56,7 +56,7 @@
 # name: test_warn_on_diff.1
   list([
     "WARNING: Content of existing file '<srcdir>/_build/html/ubproject.toml' differs from new configuration:",
-    '--- <srcdir>/_build/html/ubproject.toml (existing)+++ <srcdir>/_build/html/ubproject.toml (new)@@ -1 +1,2 @@ [needs]',
+    '--- existing+++ new@@ -1 +1,2 @@ [needs]',
     '+build_json = true',
     ' [needs_config_writer.content_diff]',
   ])
