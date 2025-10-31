@@ -86,6 +86,13 @@ def setup(app: Sphinx):
         types=[bool],
         description="Whether to exclude configuration options that are set to their default values.",
     )
+    app.add_config_value(
+        "needscfg_relativize_paths",
+        [],
+        "html",
+        types=[list],
+        description="List of config path patterns to relativize (e.g., 'needs_schema_debug_path', 'needs_external_needs[*].json').",
+    )
 
     # env-before-read-docs is always called (even when no docs changed),
     # runs after Sphinx-Needs has injected configuration, and runs before
