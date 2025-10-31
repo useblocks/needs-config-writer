@@ -129,6 +129,7 @@
       "local_success",
       "network_local_success",
   ]
+  schema_debug_path = "../../schema_debug"
   service_all_data = false
   show_link_id = true
   show_link_title = false

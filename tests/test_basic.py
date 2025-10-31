@@ -74,8 +74,9 @@ def test_write_defaults(
             "needs_from_toml",
             "needs_from_toml_table",
             "needs_schema_definitions_from_json",
-            "needs_schema_debug_path",  # converted to absolute path, differs for testing
+            # "needs_schema_debug_path",  # converted to absolute path, differs for testing
         ]
+        needscfg_relativize_paths = ["needs_schema_debug_path"]
         """
     )
     index_rst = textwrap.dedent(

@@ -96,8 +96,8 @@ def relativize_path(absolute_path: Path, base_path: Path) -> str:
     resolved_absolute_path = absolute_path.resolve()
     base_path = base_path.resolve()
 
-    # If base_path is a file, use its parent directory
-    if base_path.is_file():
+    # If base_path is a file (or looks like a file with a suffix), use its parent directory
+    if base_path.is_file() or (not base_path.is_dir() and base_path.suffix):
         base_path = base_path.parent
 
     # Try to find symlinks in the base path's tree that might point to parts of the target path
