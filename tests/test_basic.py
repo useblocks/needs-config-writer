@@ -76,7 +76,7 @@ def test_write_defaults(
             "needs_schema_definitions_from_json",
             # "needs_schema_debug_path",  # converted to absolute path, differs for testing
         ]
-        needscfg_relativize_paths = ["needs_schema_debug_path"]
+        needscfg_relative_path_fields = ["needs_schema_debug_path"]
         """
     )
     index_rst = textwrap.dedent(
@@ -1276,4 +1276,61 @@ def test_exclude_defaults(tmpdir, make_app, write_fixture_files, snapshot):
     assert "tags" not in content  # Has default value (empty list)
     assert "id_regex" not in content  # Has default value (regex pattern)
 
+    app.cleanup()
+
+
+def test_relative_path_with_prefix(tmpdir, make_app, write_fixture_files, snapshot):
+    """Test that needscfg_relative_path_fields handles string-embedded paths with prefix."""
+    # Create a nested directory structure
+    assets_dir = Path(tmpdir) / "assets"
+    assets_dir.mkdir()
+    theme_file = assets_dir / "puml-theme-project.puml"
+    theme_file.write_text("@startuml\n' theme content\n@enduml\n")
+
+    conf_py = textwrap.dedent(
+        f"""
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_add_header = False
+        needs_flow_configs = {{
+            "my_config": "!include {theme_file.as_posix()}"
+        }}
+        needscfg_relative_path_fields = [
+            {{
+                "field": "needs_flow_configs.my_config",
+                "prefix": "!include ",
+            }}
+        ]
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+
+    assert app.statuscode == 0
+
+    path_ubproject = Path(app.builder.outdir, "ubproject.toml")
+    assert path_ubproject.exists()
+    content = path_ubproject.read_text("utf8")
+
+    # Should contain the prefix followed by a relative path
+    assert "!include " in content
+    assert "!include ../../assets/puml-theme-project.puml" in content
+    # Should NOT contain the absolute path
+    assert str(theme_file) not in content
+
+    assert content == snapshot
     app.cleanup()

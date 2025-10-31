@@ -47,6 +47,21 @@
   
   '''
 # ---
+# name: test_relative_path_with_prefix
+  '''
+  [needs.flow_configs]
+  cplant = "\n    ' CPLANT by AOKI (https://github.com/aoki/cplant)\n    !define BLACK   #363D5D\n    !define RED     #F6363F\n    !define PINK    #F6216E\n    !define MAGENTA #A54FBD\n    !define GREEN   #37A77C\n    !define YELLOW  #F97A00\n    !define BLUE    #1E98F2\n    !define CYAN    #25AFCA\n    !define WHITE   #FEF2DC\n\n    ' Base Setting\n    skinparam Shadowing false\n    skinparam BackgroundColor transparent\n    skinparam ComponentStyle uml2\n    skinparam Default {\n      FontName  'Hiragino Sans'\n      FontColor BLACK\n      FontSize  10\n      FontStyle plain\n    }\n\n    skinparam Sequence {\n      ArrowThickness 1\n      ArrowColor RED\n      ActorBorderThickness 1\n      LifeLineBorderColor GREEN\n      ParticipantBorderThickness 0\n    }\n    skinparam Participant {\n      BackgroundColor BLACK\n      BorderColor BLACK\n      FontColor #FFFFFF\n    }\n\n    skinparam Actor {\n      BackgroundColor BLACK\n      BorderColor BLACK\n    }\n    "
+  handwritten = "\n        skinparam handwritten true\n    "
+  lefttoright = "\n        left to right direction\n    "
+  mixing = "\n        allowmixing\n    "
+  monochrome = "\n        skinparam monochrome true\n    "
+  my_config = "!include ../../assets/puml-theme-project.puml"
+  tne = "\n    ' Based on \"Tomorrow night eighties\" color theme (see https://github.com/chriskempson/tomorrow-theme)\n    ' Provided by gabrieljoelc (https://github.com/gabrieljoelc/plantuml-themes)\n    !define Background   #2d2d2d\n    !define CurrentLine  #393939\n    !define Selection    #515151\n    !define Foregound    #cccccc\n    !define Comment      #999999\n    !define Red          #f2777a\n    !define Orange       #f99157\n    !define Yellow       #ffcc66\n    !define Green        #99cc99\n    !define Aqua         #66cccc\n    !define Blue         #6699cc\n    !define Purple       #cc99cc\n\n    skinparam Shadowing false\n    skinparam backgroundColor #2d2d2d\n    skinparam Arrow {\n      Color Foregound\n      FontColor Foregound\n      FontStyle Bold\n    }\n    skinparam Default {\n      FontName Menlo\n      FontColor #fdfdfd\n    }\n    skinparam package {\n      FontColor Purple\n      BackgroundColor CurrentLine\n      BorderColor Selection\n    }\n    skinparam node {\n      FontColor Yellow\n      BackgroundColor CurrentLine\n      BorderColor Selection\n    }\n    skinparam component {\n      BackgroundColor Selection\n      BorderColor Blue\n      FontColor Blue\n      Style uml2\n    }\n    skinparam database {\n      BackgroundColor CurrentLine\n      BorderColor Selection\n      FontColor Orange\n    }\n\n    skinparam cloud {\n      BackgroundColor CurrentLine\n      BorderColor Selection\n    }\n\n    skinparam interface {\n      BackgroundColor CurrentLine\n      BorderColor Selection\n      FontColor Green\n    }\n    "
+  toptobottom = "\n        top to bottom direction\n    "
+  transparent = "\n    skinparam backgroundcolor transparent\n    "
+  
+  '''
+# ---
 # name: test_warn_on_diff
   '''
   [needs]

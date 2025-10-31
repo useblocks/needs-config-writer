@@ -375,8 +375,8 @@ value. If they match, the option is excluded from the output file.
 
 .. _`config_relativize_paths`:
 
-needscfg_relativize_paths
--------------------------
+needscfg_relative_path_fields
+-----------------------------
 
 **Type:** ``list[str]``
 
@@ -415,13 +415,13 @@ When a field matches a pattern, the extension will:
 .. code-block:: python
 
    # No path relativization (default)
-   needscfg_relativize_paths = []
+   needscfg_relative_path_fields = []
 
    # Relativize the needs_schema_debug_path path
-   needscfg_relativize_paths = ["needs_schema_debug_path"]
+   needscfg_relative_path_fields = ["needs_schema_debug_path"]
 
    # Relativize multiple specific fields
-   needscfg_relativize_paths = [
+   needscfg_relative_path_fields = [
        "needs_schema_debug_path",
        "needs_external_needs[*].json",
    ]
@@ -445,7 +445,7 @@ With this setting:
 
 .. code-block:: python
 
-   needscfg_relativize_paths = ["needs_schema_debug_path"]
+   needscfg_relative_path_fields = ["needs_schema_debug_path"]
 
 The output will contain:
 
@@ -462,9 +462,14 @@ The output will contain:
 
 .. note::
 
-   The extension attempts to find common path ancestors when calculating relative paths.
-   If no common ancestor exists (e.g., paths on different drives on Windows), the
-   absolute path will be returned unchanged.
+   - All relative paths are converted to POSIX format (forward slashes) on all platforms,
+     including Windows. This ensures configuration files are portable across operating systems.
+   - The extension correctly handles output file paths that don't exist yet (common for
+     generated configuration files) by detecting file suffixes like ``.toml`` or ``.json``.
+   - On Unix systems, the extension attempts to find symlinks (like Bazel's ``bazel-out``)
+     to create shorter relative paths when possible.
+   - If no common ancestor exists (e.g., paths on different drives on Windows), the
+     absolute path will be returned unchanged.
 
 Examples
 --------

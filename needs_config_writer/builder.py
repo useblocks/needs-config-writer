@@ -62,10 +62,43 @@ def write_needscfg_file(
 
         # Check if this path should be relativized based on allowlist
         should_relativize = False
-        if config.needscfg_relativize_paths and outpath:
-            for pattern in config.needscfg_relativize_paths:
+        path_prefix = None
+        path_suffix = None
+        if config.needscfg_relative_path_fields and outpath:
+            for item in config.needscfg_relative_path_fields:
+                # Support both string patterns and dict with prefix/suffix
+                if isinstance(item, str):
+                    pattern = item
+                    prefix = None
+                    suffix = None
+                elif isinstance(item, dict):
+                    pattern = item.get("field")
+                    prefix = item.get("prefix")
+                    suffix = item.get("suffix")
+                    if not pattern:
+                        LOGGER.warning(
+                            f"needscfg_relative_path_fields entry missing 'field': {item}",
+                            type="ubproject",
+                            subtype="config_error",
+                        )
+                        continue
+                else:
+                    LOGGER.warning(
+                        f"Invalid needscfg_relative_path_fields entry (must be string or dict): {item}",
+                        type="ubproject",
+                        subtype="config_error",
+                    )
+                    continue
+
                 if matches_path_pattern(path, pattern):
                     should_relativize = True
+                    path_prefix = prefix
+                    path_suffix = suffix
+                    LOGGER.info(
+                        f"Path '{path}' matches pattern '{pattern}' (prefix={prefix!r}, suffix={suffix!r})",
+                        type="ubproject",
+                        subtype="path_matching",
+                    )
                     break
 
         if isinstance(obj, (Path, PosixPath)):
@@ -92,20 +125,48 @@ def write_needscfg_file(
         if isinstance(obj, (str, int, float, bool, date, datetime, time)):
             # Check if string value looks like an absolute path and should be relativized
             if isinstance(obj, str) and should_relativize and outpath:
+                # Handle string-embedded paths with prefix/suffix
+                path_to_check = obj
+
+                # Extract the path part after prefix (if present)
+                if path_prefix and obj.startswith(path_prefix):
+                    path_to_check = obj[len(path_prefix) :]
+
+                # Extract the path part before suffix (if present)
+                if path_suffix and path_to_check.endswith(path_suffix):
+                    path_to_check = path_to_check[: -len(path_suffix)]
+
                 # Try to interpret string as a path
                 try:
-                    potential_path = Path(obj)
+                    potential_path = Path(path_to_check)
                     # Check if absolute and looks like a valid path (has separators or exists)
                     if potential_path.is_absolute() and (
-                        "/" in obj or "\\" in obj or potential_path.exists()
+                        "/" in path_to_check
+                        or "\\" in path_to_check
+                        or potential_path.exists()
                     ):
                         relative_path = relativize_path(potential_path, outpath)
-                        LOGGER.info(
-                            f"Relativizing string path at '{path}': {obj} -> {relative_path}",
-                            type="ubproject",
-                            subtype="path_relativization",
-                        )
-                        return relative_path
+
+                        # Reconstruct with prefix/suffix if present
+                        if path_prefix or path_suffix:
+                            result = (
+                                (path_prefix or "")
+                                + relative_path
+                                + (path_suffix or "")
+                            )
+                            LOGGER.info(
+                                f"Relativizing embedded string path at '{path}': {obj} -> {result}",
+                                type="ubproject",
+                                subtype="path_relativization",
+                            )
+                            return result
+                        else:
+                            LOGGER.info(
+                                f"Relativizing string path at '{path}': {obj} -> {relative_path}",
+                                type="ubproject",
+                                subtype="path_relativization",
+                            )
+                            return relative_path
                 except (OSError, ValueError):
                     # Not a valid path, treat as regular string
                     pass

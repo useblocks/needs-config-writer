@@ -87,11 +87,11 @@ def setup(app: Sphinx):
         description="Whether to exclude configuration options that are set to their default values.",
     )
     app.add_config_value(
-        "needscfg_relativize_paths",
+        "needscfg_relative_path_fields",
         [],
         "html",
         types=[list],
-        description="List of config path patterns to relativize (e.g., 'needs_schema_debug_path', 'needs_external_needs[*].json').",
+        description="List of config path patterns to convert to relative paths. Can be strings (e.g., 'needs_schema_debug_path') or dicts with 'field', optional 'prefix', and optional 'suffix' keys (e.g., {'field': 'needs_flow_configs.score_config', 'prefix': '!include '}).",
     )
 
     # env-before-read-docs is always called (even when no docs changed),
