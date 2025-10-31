@@ -54,20 +54,23 @@ def matches_path_pattern(config_path: str, pattern: str) -> bool:
     """
     import re
 
-    # Convert internal path format 'needs.field_name' to 'needs_field_name' for matching
+    # Convert internal path format 'needs.field_name[idx].subfield' to 'needs_field_name[idx].subfield'
+    # Only replace the first dot after 'needs.' with underscore, keep remaining dots
     if config_path.startswith("needs."):
+        # Remove 'needs.' prefix and replace with 'needs_'
         config_path = "needs_" + config_path[6:]
 
     # Convert pattern to regex, handling wildcards in array indices
-    # First, temporarily replace [*] with a placeholder to protect it
-    pattern_with_placeholder = pattern.replace("[*]", "<!WILDCARD!>")
+    # First, temporarily replace [*] with a unique placeholder that won't be affected by escaping
+    placeholder = "\x00WILDCARD\x00"
+    pattern_with_placeholder = pattern.replace("[*]", placeholder)
 
     # Escape all special regex characters
     pattern_regex = re.escape(pattern_with_placeholder)
 
     # Replace the placeholder with a regex that matches any array index
     # This will match [0], [1], [123], etc.
-    pattern_regex = pattern_regex.replace(r"<\!WILDCARD\!>", r"\[\d+\]")
+    pattern_regex = pattern_regex.replace(placeholder, r"\[\d+\]")
 
     # Match the full path
     return re.fullmatch(pattern_regex, config_path) is not None
