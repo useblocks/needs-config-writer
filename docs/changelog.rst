@@ -3,11 +3,25 @@
 Changelog
 =========
 
-..
-   .. _unreleased:
+.. _`release:0.2.4`:
 
-   Unreleased
-   ----------
+0.2.4
+-----
+
+:Released: 31.10.2025
+:Full Changelog: `v0.2.3...v0.2.4 <https://github.com/useblocks/needs-config-writer/compare/0.2.3...a4160cf>`__
+
+- ✨ Convert absolute to relative paths (:pr:`22`)
+
+  A new configuration option :ref:`config_relative_path_fields` was added to
+  specify which Sphinx-Needs configuration fields containing file paths
+  should be converted to relative paths in the exported TOML file.
+
+  Main use case are generated paths by build systems such as Bazel.
+
+  This allows to create more portable configuration files that can be
+  used across different environments or directory structures.
+  Committing ``ubproject.toml`` files to Git is only possible with stable paths.
 
 .. _`release:0.2.3`:
 
@@ -19,7 +33,7 @@ Changelog
 
 - ✨ New config needscfg_exclude_defaults (:pr:`20`)
 
-  A new configuration option ``needscfg_exclude_defaults`` was added to
+  A new configuration option :ref:`config_exclude_defaults` was added to
   control whether default Sphinx-Needs configuration values should be
   excluded from the exported TOML file.
 

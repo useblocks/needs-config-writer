@@ -373,7 +373,7 @@ value. If they match, the option is excluded from the output file.
    configuration that includes all customized values while excluding unchanged defaults.
    This provides a clean view of what's been explicitly configured.
 
-.. _`config_relativize_paths`:
+.. _`config_relative_path_fields`:
 
 needscfg_relative_path_fields
 -----------------------------
