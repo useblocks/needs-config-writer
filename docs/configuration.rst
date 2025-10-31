@@ -378,7 +378,7 @@ value. If they match, the option is excluded from the output file.
 needscfg_relative_path_fields
 -----------------------------
 
-**Type:** ``list[str]``
+**Type:** ``list[str | dict]``
 
 **Default:** ``[]``
 
@@ -386,45 +386,69 @@ Specifies which configuration fields should have their absolute paths converted 
 in the output file. This is particularly useful when working with build systems like Bazel that
 generate absolute paths, but you want the configuration file to use relative paths for portability.
 
-The list contains path patterns that match configuration field names. Patterns must use the full
-``needs_`` prefix as they appear in ``conf.py``. Patterns support wildcards:
+Each entry in the list can be either:
 
-- Use exact field names with ``needs_`` prefix (e.g., ``"needs_build_json"``)
-- Use ``*`` to match array indices (e.g., ``"needs_external_needs[*].json"``)
+1. **String format** (simple field pattern):
 
-When a field matches a pattern, the extension will:
+   - ``"needs_schema_debug_path"`` - Matches the field directly
+   - ``"needs_external_needs[*].json"`` - Supports ``*`` wildcards for array indices
 
-1. Check if the value is an absolute path (either a ``Path`` object or a string)
-2. Calculate a relative path from the output file location to the target path
-3. Replace the absolute path with the relative path in the output
+2. **Dict format** (for paths embedded in strings with prefix/suffix):
 
-**Behavior:**
+   - ``field`` (required): The field pattern to match (e.g., ``"needs_flow_configs.my_config"``)
+   - ``prefix`` (optional): String prefix before the path (e.g., ``"!include "``)
+   - ``suffix`` (optional): String suffix after the path (e.g., ``"?raw=true"``)
 
-- Empty list ``[]`` (default): No path relativization
-- Non-empty list: Only fields matching the patterns will have paths relativized
+**When a field matches a pattern:**
 
-**Use cases:**
+1. Check if the value is an absolute path (``Path`` object or string)
+2. Extract the path portion (removing prefix/suffix if configured)
+3. Calculate a relative path from the output file location to the target path
+4. Replace with relative path (preserving prefix/suffix if configured)
 
-- Working with Bazel or similar build systems that use absolute paths
-- Making configuration files portable across different machines/environments
-- Keeping paths relative to the repository root instead of absolute system paths
-- Handling paths that point outside the documentation source tree
-
-**Examples:**
+**Configuration Formats:**
 
 .. code-block:: python
 
-   # No path relativization (default)
-   needscfg_relative_path_fields = []
-
-   # Relativize the needs_schema_debug_path path
-   needscfg_relative_path_fields = ["needs_schema_debug_path"]
-
-   # Relativize multiple specific fields
    needscfg_relative_path_fields = [
+       # Simple string format - for direct path values
        "needs_schema_debug_path",
-       "needs_external_needs[*].json",
+
+       # String with wildcards - for array fields
+       "needs_external_needs[*].json_path",
+
+       # Dict with prefix - for paths embedded in strings like "!include /path/to/file"
+       {
+           "field": "needs_flow_configs.plantuml_config",
+           "prefix": "!include ",
+       },
+
+       # Dict with suffix - for paths like "/path/to/file?option=value"
+       {
+           "field": "needs_asset_url",
+           "suffix": "?raw=true",
+       },
+
+       # Dict with both prefix and suffix
+       {
+           "field": "needs_custom_path",
+           "prefix": "file://",
+           "suffix": "#anchor",
+       },
+
+       # Dict with just field (equivalent to string format)
+       {
+           "field": "needs_build_json_path",
+       },
    ]
+
+**Use Cases:**
+
+- Working with Bazel or similar build systems that use absolute paths
+- Making configuration files portable across different machines/environments
+- Handling PlantUML ``!include`` directives with absolute paths
+- Processing URL-like strings with path components
+- Keeping paths relative to the repository root instead of absolute system paths
 
 **Example with Bazel:**
 
@@ -440,6 +464,11 @@ And your configuration file output is at:
 .. code-block:: text
 
    /home/user/git/project/docs/ubproject.toml
+   /home/user/git/project/bazel-out > /home/user/.cache/bazel/.../execroot/_main/bazel-out
+
+Note that Bazel creates a ``bazel-out`` symlink in the project directory
+(``/home/user/git/project/bazel-out``) that points into the Bazel cache.
+The extension detects this symlink and uses it to create a shorter relative path.
 
 With this setting:
 
@@ -454,7 +483,59 @@ The output will contain:
    [needs]
    schema_debug_path = "../bazel-out/k8-fastbuild/bin/docs.runfiles/project/schema_debug"
 
-.. warning::
+**Example with Prefix (PlantUML !include directive):**
+
+If you have a PlantUML configuration with an ``!include`` directive:
+
+.. code-block:: python
+
+   # In conf.py
+   needs_flow_configs = {
+       "plantuml_theme": "!include /home/user/project/assets/theme.puml"
+   }
+
+With this configuration:
+
+.. code-block:: python
+
+   needscfg_relative_path_fields = [
+       {
+           "field": "needs_flow_configs.plantuml_theme",
+           "prefix": "!include ",
+       }
+   ]
+
+The output will preserve the ``!include`` prefix with a relative path:
+
+.. code-block:: toml
+
+   [needs.flow_configs]
+   plantuml_theme = "!include ../assets/theme.puml"
+
+**Example with Suffix (URL parameters):**
+
+For paths that include URL parameters or anchors:
+
+.. code-block:: python
+
+   # In conf.py
+   needs_asset_url = "/home/user/project/docs/image.png?width=500"
+
+   needscfg_relative_path_fields = [
+       {
+           "field": "needs_asset_url",
+           "suffix": "?width=500",
+       }
+   ]
+
+The output preserves the suffix:
+
+.. code-block:: toml
+
+   [needs]
+   asset_url = "../image.png?width=500"
+
+.. warning::.. warning::
 
    Path relativization is only applied to fields explicitly listed in the allowlist.
    This is a safety feature to prevent unintended path transformations. You must
