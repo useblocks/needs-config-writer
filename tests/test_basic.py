@@ -1279,13 +1279,83 @@ def test_exclude_defaults(tmpdir, make_app, write_fixture_files, snapshot):
     app.cleanup()
 
 
-def test_relative_path_with_prefix(tmpdir, make_app, write_fixture_files, snapshot):
-    """Test that needscfg_relative_path_fields handles string-embedded paths with prefix."""
+@pytest.mark.parametrize(
+    ("config_format", "config_value", "expected_pattern"),
+    [
+        # Test with prefix only
+        (
+            {"field": "needs_flow_configs.prefix_config", "prefix": "!include "},
+            "!include {path}",
+            "!include ../../assets/puml-theme-prefix.puml",
+        ),
+        # Test with suffix only
+        (
+            {"field": "needs_flow_configs.suffix_config", "suffix": "?raw=true"},
+            "{path}?raw=true",
+            "../../assets/puml-theme-suffix.puml?raw=true",
+        ),
+        # Test with both prefix and suffix
+        (
+            {
+                "field": "needs_flow_configs.both_config",
+                "prefix": "!include ",
+                "suffix": "?raw=true",
+            },
+            "!include {path}?raw=true",
+            "!include ../../assets/puml-theme-both.puml?raw=true",
+        ),
+        # Test with dict format but no prefix/suffix (just field)
+        (
+            {"field": "needs_flow_configs.dict_only_config"},
+            "{path}",
+            "../../assets/puml-theme-dict_only.puml",
+        ),
+        # Test with simple string format (not a dict)
+        (
+            "needs_flow_configs.string_config",
+            "{path}",
+            "../../assets/puml-theme-string.puml",
+        ),
+    ],
+    ids=[
+        "prefix_only",
+        "suffix_only",
+        "prefix_and_suffix",
+        "dict_field_only",
+        "string_format",
+    ],
+)
+def test_relative_path_with_prefix(
+    tmpdir,
+    make_app,
+    write_fixture_files,
+    snapshot,
+    config_format,
+    config_value,
+    expected_pattern,
+):
+    """Test that needscfg_relative_path_fields handles various configuration formats."""
     # Create a nested directory structure
     assets_dir = Path(tmpdir) / "assets"
     assets_dir.mkdir()
-    theme_file = assets_dir / "puml-theme-project.puml"
+
+    # Determine config key based on format
+    if isinstance(config_format, dict):
+        config_key = config_format["field"].split(".")[-1]
+    else:
+        config_key = config_format.split(".")[-1]
+
+    theme_file = assets_dir / f"puml-theme-{config_key.replace('_config', '')}.puml"
     theme_file.write_text("@startuml\n' theme content\n@enduml\n")
+
+    # Format the config value with actual path
+    formatted_value = config_value.format(path=theme_file.as_posix())
+
+    # Build config list entry
+    if isinstance(config_format, dict):
+        config_entry = repr(config_format)
+    else:
+        config_entry = repr(config_format)
 
     conf_py = textwrap.dedent(
         f"""
@@ -1295,14 +1365,9 @@ def test_relative_path_with_prefix(tmpdir, make_app, write_fixture_files, snapsh
         ]
         needscfg_add_header = False
         needs_flow_configs = {{
-            "my_config": "!include {theme_file.as_posix()}"
+            "{config_key}": "{formatted_value}"
         }}
-        needscfg_relative_path_fields = [
-            {{
-                "field": "needs_flow_configs.my_config",
-                "prefix": "!include ",
-            }}
-        ]
+        needscfg_relative_path_fields = [{config_entry}]
         """
     )
     index_rst = textwrap.dedent(
@@ -1326,11 +1391,14 @@ def test_relative_path_with_prefix(tmpdir, make_app, write_fixture_files, snapsh
     assert path_ubproject.exists()
     content = path_ubproject.read_text("utf8")
 
-    # Should contain the prefix followed by a relative path
-    assert "!include " in content
-    assert "!include ../../assets/puml-theme-project.puml" in content
+    # Should contain the expected pattern
+    assert expected_pattern in content, (
+        f"Expected '{expected_pattern}' not found in content"
+    )
     # Should NOT contain the absolute path
-    assert str(theme_file) not in content
+    assert str(theme_file) not in content, (
+        f"Absolute path {theme_file} should not be in output"
+    )
 
     assert content == snapshot
     app.cleanup()
