@@ -76,17 +76,19 @@ def write_needscfg_file(
                     prefix = item.get("prefix")
                     suffix = item.get("suffix")
                     if not pattern:
-                        LOGGER.warning(
+                        log_warning(
+                            LOGGER,
                             f"needscfg_relative_path_fields entry missing 'field': {item}",
-                            type="ubproject",
-                            subtype="config_error",
+                            "config_error",
+                            location=None,
                         )
                         continue
                 else:
-                    LOGGER.warning(
+                    log_warning(
+                        LOGGER,
                         f"Invalid needscfg_relative_path_fields entry (must be string or dict): {item}",
-                        type="ubproject",
-                        subtype="config_error",
+                        "config_error",
+                        location=None,
                     )
                     continue
 
@@ -114,10 +116,11 @@ def write_needscfg_file(
                 )
                 return relative_path
             else:
-                LOGGER.warning(
+                log_warning(
+                    LOGGER,
                     f"Converting Path/PosixPath to string at '{path}': {obj}",
-                    type="ubproject",
-                    subtype="path_conversion",
+                    "path_conversion",
+                    location=None,
                 )
                 return str(obj)
 
