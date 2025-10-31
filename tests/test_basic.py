@@ -70,6 +70,12 @@ def test_write_defaults(
         ]
         needscfg_add_header = False
         needscfg_write_all = True
+        needscfg_exclude_vars = [
+            "needs_from_toml",
+            "needs_from_toml_table",
+            "needs_schema_definitions_from_json",
+            "needs_schema_debug_path",  # converted to absolute path, differs for testing
+        ]
         """
     )
     index_rst = textwrap.dedent(
