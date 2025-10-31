@@ -66,7 +66,7 @@ def test_relativize_path_without_symlinks(tmpdir) -> None:
     bazel_out_dir.mkdir(parents=True)
 
     # Create the target file
-    target_file = bazel_out_dir / "external" / "score_process+" / "file.json"
+    target_file = bazel_out_dir / "external" / "someproj+" / "file.json"
     target_file.parent.mkdir(parents=True)
     target_file.write_text("test")
 
@@ -77,8 +77,8 @@ def test_relativize_path_without_symlinks(tmpdir) -> None:
     # Test relativization
     result = relativize_path(target_file, base_path)
 
-    # Should produce standard relative path: ../bazel-out/k8-fastbuild/bin/external/score_process+/file.json
-    expected = "../bazel-out/k8-fastbuild/bin/external/score_process+/file.json"
+    # Should produce standard relative path: ../bazel-out/k8-fastbuild/bin/external/someproj+/file.json
+    expected = "../bazel-out/k8-fastbuild/bin/external/someproj+/file.json"
     assert result == expected, f"Expected '{expected}' but got '{result}'"
 
 
@@ -103,7 +103,7 @@ def test_relativize_path_with_symlinks(tmpdir) -> None:
     bazel_out_dir.mkdir(parents=True)
 
     # Create the target file
-    target_file = bazel_out_dir / "external" / "score_process+" / "file.json"
+    target_file = bazel_out_dir / "external" / "someproj+" / "file.json"
     target_file.parent.mkdir(parents=True)
     target_file.write_text("test")
 
@@ -128,6 +128,6 @@ def test_relativize_path_with_symlinks(tmpdir) -> None:
     result = relativize_path(target_file, base_path)
     print(f"  result: {result}")
 
-    # Should use the symlink: ../bazel-out/k8-fastbuild/bin/external/score_process+/file.json
-    expected = "../bazel-out/k8-fastbuild/bin/external/score_process+/file.json"
+    # Should use the symlink: ../bazel-out/k8-fastbuild/bin/external/someproj+/file.json
+    expected = "../bazel-out/k8-fastbuild/bin/external/someproj+/file.json"
     assert result == expected, f"Expected '{expected}' but got '{result}'"

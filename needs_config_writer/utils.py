@@ -131,7 +131,7 @@ def relativize_path(absolute_path: Path, base_path: Path) -> str:
                             path_to_symlink = entry.relative_to(base_path)
                             # The relative path is: path_to_symlink / relative_to_symlink
                             candidate_path = path_to_symlink / relative_to_symlink
-                            candidate_str = str(candidate_path)
+                            candidate_str = candidate_path.as_posix()
 
                             # Keep track of the shortest path
                             if len(candidate_str) < best_path_length:
@@ -156,7 +156,7 @@ def relativize_path(absolute_path: Path, base_path: Path) -> str:
                                     + list(relative_to_symlink.parts)
                                 )
                                 candidate_path = Path(*path_parts)
-                                candidate_str = str(candidate_path)
+                                candidate_str = candidate_path.as_posix()
 
                                 if len(candidate_str) < best_path_length:
                                     best_relative_path = candidate_str
