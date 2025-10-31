@@ -11,42 +11,13 @@ import tomli
 import tomli_w
 
 from needs_config_writer.logging import get_logger, log_warning
+from needs_config_writer.utils import (
+    matches_path_pattern,
+    relativize_path,
+    resolve_path_template,
+)
 
 LOGGER = get_logger(__name__)
-
-
-def resolve_path_template(
-    path_template: str,
-    app: Sphinx,
-    outdir: Path | None = None,
-    srcdir: Path | None = None,
-) -> Path:
-    """
-    Resolve a path template with ${outdir} and ${srcdir} variables.
-
-    Args:
-        path_template: Path string that may contain ${outdir} or ${srcdir}
-        app: Sphinx application instance
-        outdir: Optional output directory (defaults to app.outdir)
-        srcdir: Optional source directory (defaults to app.srcdir)
-
-    Returns:
-        Resolved Path object (absolute if relative to confdir)
-    """
-    if outdir is None:
-        outdir = Path(app.outdir)
-    if srcdir is None:
-        srcdir = Path(app.srcdir)
-
-    path_str = path_template.replace("${outdir}", str(outdir))
-    path_str = path_str.replace("${srcdir}", str(srcdir))
-    path = Path(path_str)
-
-    # Make relative paths relative to confdir (where conf.py is located)
-    if not path.is_absolute():
-        path = Path(app.confdir) / path
-
-    return path
 
 
 def write_needscfg_file(
@@ -64,7 +35,7 @@ def write_needscfg_file(
         srcdir: Optional source directory (defaults to app.srcdir)
     """
 
-    def get_safe_config(obj: Any, path: str = "") -> Any:
+    def get_safe_config(obj: Any, path: str = "", outpath: Path | None = None) -> Any:
         """
         Recursively walk needs config and make it TOML serialisable.
 
@@ -73,11 +44,12 @@ def write_needscfg_file(
         - Non-serializable types (only str, int, float, bool, datetime, and collections are kept)
 
         Special handling:
-        - PosixPath objects are converted to strings (with a warning)
+        - PosixPath objects are converted to strings (with optional relativization)
 
         Args:
             obj: The object to convert
             path: The current path for debugging (e.g., "needs.types[0].directive")
+            outpath: The output file path for relativizing absolute paths
 
         Returns:
             The converted object if serializable, or None if the value should be filtered out
@@ -88,23 +60,127 @@ def write_needscfg_file(
         if obj is None:
             return None
 
+        # Check if this path should be relativized based on allowlist
+        should_relativize = False
+        path_prefix = None
+        path_suffix = None
+        if config.needscfg_relative_path_fields and outpath:
+            for item in config.needscfg_relative_path_fields:
+                # Support both string patterns and dict with prefix/suffix
+                if isinstance(item, str):
+                    pattern = item
+                    prefix = None
+                    suffix = None
+                elif isinstance(item, dict):
+                    pattern = item.get("field")
+                    prefix = item.get("prefix")
+                    suffix = item.get("suffix")
+                    if not pattern:
+                        log_warning(
+                            LOGGER,
+                            f"needscfg_relative_path_fields entry missing 'field': {item}",
+                            "config_error",
+                            location=None,
+                        )
+                        continue
+                else:
+                    log_warning(
+                        LOGGER,
+                        f"Invalid needscfg_relative_path_fields entry (must be string or dict): {item}",
+                        "config_error",
+                        location=None,
+                    )
+                    continue
+
+                if matches_path_pattern(path, pattern):
+                    should_relativize = True
+                    path_prefix = prefix
+                    path_suffix = suffix
+                    LOGGER.info(
+                        f"Path '{path}' matches pattern '{pattern}' (prefix={prefix!r}, suffix={suffix!r})",
+                        type="ubproject",
+                        subtype="path_matching",
+                    )
+                    break
+
         if isinstance(obj, (Path, PosixPath)):
-            LOGGER.warning(
-                f"Converting Path/PosixPath to string at '{path}': {obj}",
-                type="ubproject",
-                subtype="path_conversion",
-            )
-            return str(obj)
+            # Convert Path to string, optionally relativizing absolute paths
+            path_obj = Path(obj)
+
+            if should_relativize and path_obj.is_absolute() and outpath:
+                relative_path = relativize_path(path_obj, outpath)
+                LOGGER.info(
+                    f"Relativizing path at '{path}': {obj} -> {relative_path}",
+                    type="ubproject",
+                    subtype="path_relativization",
+                )
+                return relative_path
+            else:
+                log_warning(
+                    LOGGER,
+                    f"Converting Path/PosixPath to string at '{path}': {obj}",
+                    "path_conversion",
+                    location=None,
+                )
+                return str(obj)
 
         # Allow basic TOML-serializable types
         if isinstance(obj, (str, int, float, bool, date, datetime, time)):
+            # Check if string value looks like an absolute path and should be relativized
+            if isinstance(obj, str) and should_relativize and outpath:
+                # Handle string-embedded paths with prefix/suffix
+                path_to_check = obj
+
+                # Extract the path part after prefix (if present)
+                if path_prefix and obj.startswith(path_prefix):
+                    path_to_check = obj[len(path_prefix) :]
+
+                # Extract the path part before suffix (if present)
+                if path_suffix and path_to_check.endswith(path_suffix):
+                    path_to_check = path_to_check[: -len(path_suffix)]
+
+                # Try to interpret string as a path
+                try:
+                    potential_path = Path(path_to_check)
+                    # Check if absolute and looks like a valid path (has separators or exists)
+                    if potential_path.is_absolute() and (
+                        "/" in path_to_check
+                        or "\\" in path_to_check
+                        or potential_path.exists()
+                    ):
+                        relative_path = relativize_path(potential_path, outpath)
+
+                        # Reconstruct with prefix/suffix if present
+                        if path_prefix or path_suffix:
+                            result = (
+                                (path_prefix or "")
+                                + relative_path
+                                + (path_suffix or "")
+                            )
+                            LOGGER.info(
+                                f"Relativizing embedded string path at '{path}': {obj} -> {result}",
+                                type="ubproject",
+                                subtype="path_relativization",
+                            )
+                            return result
+                        else:
+                            LOGGER.info(
+                                f"Relativizing string path at '{path}': {obj} -> {relative_path}",
+                                type="ubproject",
+                                subtype="path_relativization",
+                            )
+                            return relative_path
+                except (OSError, ValueError):
+                    # Not a valid path, treat as regular string
+                    pass
+
             return obj
 
         if isinstance(obj, dict):
             result = {}
             for key, value in obj.items():
                 item_path = f"{path}.{key}" if path else str(key)
-                safe_value = get_safe_config(value, item_path)
+                safe_value = get_safe_config(value, item_path, outpath)
                 if safe_value is not None:
                     result[key] = safe_value
             return result
@@ -113,7 +189,7 @@ def write_needscfg_file(
             items = []
             for idx, item in enumerate(obj):
                 item_path = f"{path}[{idx}]"
-                safe_value = get_safe_config(item, item_path)
+                safe_value = get_safe_config(item, item_path, outpath)
                 if safe_value is not None:
                     items.append(safe_value)
 
@@ -215,6 +291,9 @@ def write_needscfg_file(
             return tuple(sort_for_reproducibility(item, path) for item in obj)
         return obj
 
+    # Resolve output path early so it's available for path relativization
+    outpath = resolve_path_template(config.needscfg_outpath, app, outdir, srcdir)
+
     # TODO support the extend keyword in Sphinx-Needs
     # TODO translate needs_from_toml to extend keyword?
     raw_needs_config = {x for x in config._raw_config if x.startswith("needs_")}
@@ -225,7 +304,7 @@ def write_needscfg_file(
                 # these configs are resolved, skip them
                 continue
             config_name = attribute[6:]
-            safe_value = get_safe_config(value, f"needs.{config_name}")
+            safe_value = get_safe_config(value, f"needs.{config_name}", outpath)
             # Only include serializable values (None means filtered out)
             if safe_value is not None:
                 # Check if we should exclude default values
@@ -315,9 +394,6 @@ def write_needscfg_file(
 
     # Sort all root-level keys (including 'needs') alphabetically
     final_toml_data = dict(sorted(final_toml_data.items()))
-
-    # Resolve output path with template substitution
-    outpath = resolve_path_template(config.needscfg_outpath, app, outdir, srcdir)
 
     # Generate new content
     new_content = tomli_w.dumps(final_toml_data)
