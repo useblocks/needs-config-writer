@@ -1,6 +1,7 @@
 """Tests for utility functions."""
 
 from pathlib import Path
+import sys
 
 import pytest
 
@@ -50,6 +51,41 @@ def test_matches_path_pattern(config_path: str, pattern: str, expected: bool) ->
     assert matches_path_pattern(config_path, pattern) == expected
 
 
+def test_relativize_path_without_symlinks(tmpdir) -> None:
+    """Test that relativize_path works correctly without symlinks (standard relative paths)."""
+    # Create directory structure without symlinks
+    # /tmp/xxx/project/docs/ubproject.toml (base_path)
+    # /tmp/xxx/project/bazel-out/k8-fastbuild/bin/file.json (target, no symlink)
+
+    tmp_path = Path(tmpdir)
+    project_dir = tmp_path / "project"
+    docs_dir = project_dir / "docs"
+    docs_dir.mkdir(parents=True)
+
+    bazel_out_dir = project_dir / "bazel-out" / "k8-fastbuild" / "bin"
+    bazel_out_dir.mkdir(parents=True)
+
+    # Create the target file
+    target_file = bazel_out_dir / "external" / "score_process+" / "file.json"
+    target_file.parent.mkdir(parents=True)
+    target_file.write_text("test")
+
+    # Base path is the output file location
+    base_path = docs_dir / "ubproject.toml"
+    base_path.write_text("")  # Create the file
+
+    # Test relativization
+    result = relativize_path(target_file, base_path)
+
+    # Should produce standard relative path: ../bazel-out/k8-fastbuild/bin/external/score_process+/file.json
+    expected = "../bazel-out/k8-fastbuild/bin/external/score_process+/file.json"
+    assert result == expected, f"Expected '{expected}' but got '{result}'"
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="Symlinks require administrator privileges on Windows",
+)
 def test_relativize_path_with_symlinks(tmpdir) -> None:
     """Test that relativize_path handles Bazel-style symlinks correctly."""
     # Create directory structure mimicking Bazel

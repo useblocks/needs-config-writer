@@ -177,15 +177,12 @@ def relativize_path(absolute_path: Path, base_path: Path) -> str:
         # Move up one directory
         current_check_dir = current_check_dir.parent
 
-    # If we found a path through a symlink, use it
-    if best_relative_path is not None:
-        return best_relative_path
-
-    # Fall back to standard relative path calculation
+    # Calculate standard relative path
+    standard_relative_path = None
     try:
         # Try to compute a relative path directly
         relative = resolved_absolute_path.relative_to(base_path)
-        return str(relative)
+        standard_relative_path = relative.as_posix()
     except ValueError:
         # Paths don't share a common base, need to go up and down
         # Find common ancestor
@@ -200,8 +197,8 @@ def relativize_path(absolute_path: Path, base_path: Path) -> str:
                 break
 
         if not common_parts:
-            # No common ancestor, return absolute path as string
-            return str(resolved_absolute_path)
+            # No common ancestor, return absolute path as POSIX string
+            return resolved_absolute_path.as_posix()
 
         # Calculate how many levels to go up from base_path
         levels_up = len(base_parts) - len(common_parts)
@@ -212,4 +209,12 @@ def relativize_path(absolute_path: Path, base_path: Path) -> str:
         # Build relative path: ../ for each level up, then path down
         relative_parts = [".."] * levels_up + list(path_down_parts)
 
-        return str(Path(*relative_parts))
+        standard_relative_path = Path(*relative_parts).as_posix()
+
+    # Use symlink path only if it's shorter than standard path
+    if best_relative_path is not None and len(best_relative_path) < len(
+        standard_relative_path
+    ):
+        return best_relative_path
+
+    return standard_relative_path
