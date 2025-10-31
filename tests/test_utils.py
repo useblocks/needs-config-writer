@@ -1,7 +1,6 @@
 """Tests for utility functions."""
 
 from pathlib import Path
-import sys
 
 import pytest
 
@@ -82,10 +81,6 @@ def test_relativize_path_without_symlinks(tmpdir) -> None:
     assert result == expected, f"Expected '{expected}' but got '{result}'"
 
 
-@pytest.mark.skipif(
-    sys.platform == "win32",
-    reason="Symlinks require administrator privileges on Windows",
-)
 def test_relativize_path_with_symlinks(tmpdir) -> None:
     """Test that relativize_path handles Bazel-style symlinks correctly."""
     # Create directory structure mimicking Bazel
