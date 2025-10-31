@@ -58,13 +58,16 @@ def matches_path_pattern(config_path: str, pattern: str) -> bool:
     if config_path.startswith("needs."):
         config_path = "needs_" + config_path[6:]
 
-    # Convert pattern to regex
-    # Escape special regex characters except * and []
-    pattern_regex = re.escape(pattern)
-    # Replace escaped \* with .* for wildcard matching
-    pattern_regex = pattern_regex.replace(r"\*", ".*")
-    # Replace escaped \[ and \] back to literals for array index matching
-    pattern_regex = pattern_regex.replace(r"\[", "[").replace(r"\]", "]")
+    # Convert pattern to regex, handling wildcards in array indices
+    # First, temporarily replace [*] with a placeholder to protect it
+    pattern_with_placeholder = pattern.replace("[*]", "<!WILDCARD!>")
+
+    # Escape all special regex characters
+    pattern_regex = re.escape(pattern_with_placeholder)
+
+    # Replace the placeholder with a regex that matches any array index
+    # This will match [0], [1], [123], etc.
+    pattern_regex = pattern_regex.replace(r"<\!WILDCARD\!>", r"\[\d+\]")
 
     # Match the full path
     return re.fullmatch(pattern_regex, config_path) is not None
