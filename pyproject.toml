@@ -4,7 +4,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "needs-config-writer"
-version = "0.2.3"
+version = "0.2.4"
 description = "Sphinx extension to write Sphinx-Needs config to ubproject.toml"
 readme = "README.rst"
 urls.Repository = "https://github.com/useblocks/needs-config-writer"
