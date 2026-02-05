@@ -1402,3 +1402,44 @@ def test_relative_path_with_prefix(
 
     assert content == snapshot
     app.cleanup()
+
+
+def test_no_recursion_error_on_rebuild(
+    tmpdir: Path,
+    make_app: Callable[[], SphinxTestApp],
+    write_fixture_files: Callable[[Path, dict[str, Any]], None],
+) -> None:
+    """Test that rebuilding doesn't cause recursion errors (simulates hot reload)."""
+    conf_py = textwrap.dedent(
+        """
+        extensions = [
+            "sphinx_needs",
+            "needs_config_writer",
+        ]
+        needscfg_add_header = False
+        needscfg_overwrite = True
+        """
+    )
+    index_rst = textwrap.dedent(
+        """
+        Headline
+        ========
+        """
+    )
+    file_contents: dict[str, str] = {
+        "conf": conf_py,
+        "rst": index_rst,
+    }
+    write_fixture_files(tmpdir, file_contents)
+
+    # First build
+    app: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=True)
+    app.build()
+    assert app.statuscode == 0
+    app.cleanup()
+
+    # Second build (simulates hot reload) - should not cause recursion error
+    app2: SphinxTestApp = make_app(srcdir=Path(tmpdir), freshenv=False)
+    app2.build()
+    assert app2.statuscode == 0
+    app2.cleanup()

@@ -35,7 +35,12 @@ def write_needscfg_file(
         srcdir: Optional source directory (defaults to app.srcdir)
     """
 
-    def get_safe_config(obj: Any, path: str = "", outpath: Path | None = None) -> Any:
+    def get_safe_config(
+        obj: Any,
+        path: str = "",
+        outpath: Path | None = None,
+        visited: set[int] | None = None,
+    ) -> Any:
         """
         Recursively walk needs config and make it TOML serialisable.
 
@@ -45,20 +50,49 @@ def write_needscfg_file(
 
         Special handling:
         - PosixPath objects are converted to strings (with optional relativization)
+        - Circular references are detected and filtered out to prevent infinite recursion
 
         Args:
             obj: The object to convert
             path: The current path for debugging (e.g., "needs.types[0].directive")
             outpath: The output file path for relativizing absolute paths
+            visited: Set of object IDs already visited (for circular reference detection)
 
         Returns:
             The converted object if serializable, or None if the value should be filtered out
         """
         from datetime import date, datetime, time
 
+        # Initialize visited set on first call
+        if visited is None:
+            visited = set()
+
         # Filter out None - TOML doesn't support null values
         if obj is None:
             return None
+
+        # Check for circular references (only for mutable objects that can contain references)
+        # Skip this check for immutable types and simple types
+        # We track objects in the current traversal path to detect true circular refs (A -> B -> A)
+        # but allow the same object to be referenced from different paths (A -> C, B -> C)
+        if isinstance(obj, (dict, list, tuple, set)):
+            obj_id = id(obj)
+            if obj_id in visited:
+                log_warning(
+                    LOGGER,
+                    f"Circular reference detected at '{path}' - filtering out to prevent infinite recursion",
+                    "circular_reference",
+                    location=None,
+                )
+                return None
+            # Add to visited set for this traversal path
+            visited.add(obj_id)
+            # We'll remove it after processing to allow the same object from different paths
+            should_remove_from_visited = True
+            visited_obj_id = obj_id
+        else:
+            should_remove_from_visited = False
+            visited_obj_id = None
 
         # Check if this path should be relativized based on allowlist
         should_relativize = False
@@ -177,27 +211,37 @@ def write_needscfg_file(
             return obj
 
         if isinstance(obj, dict):
-            result = {}
-            for key, value in obj.items():
-                item_path = f"{path}.{key}" if path else str(key)
-                safe_value = get_safe_config(value, item_path, outpath)
-                if safe_value is not None:
-                    result[key] = safe_value
-            return result
+            try:
+                result = {}
+                for key, value in obj.items():
+                    item_path = f"{path}.{key}" if path else str(key)
+                    safe_value = get_safe_config(value, item_path, outpath, visited)
+                    if safe_value is not None:
+                        result[key] = safe_value
+                return result
+            finally:
+                # Remove from visited to allow same object from different paths
+                if should_remove_from_visited and visited_obj_id is not None:
+                    visited.discard(visited_obj_id)
 
         if isinstance(obj, (list, tuple, set)):
-            items = []
-            for idx, item in enumerate(obj):
-                item_path = f"{path}[{idx}]"
-                safe_value = get_safe_config(item, item_path, outpath)
-                if safe_value is not None:
-                    items.append(safe_value)
+            try:
+                items = []
+                for idx, item in enumerate(obj):
+                    item_path = f"{path}[{idx}]"
+                    safe_value = get_safe_config(item, item_path, outpath, visited)
+                    if safe_value is not None:
+                        items.append(safe_value)
 
-            if isinstance(obj, tuple):
-                return tuple(items)
-            if isinstance(obj, set):
-                return set(items)
-            return items
+                if isinstance(obj, tuple):
+                    return tuple(items)
+                if isinstance(obj, set):
+                    return set(items)
+                return items
+            finally:
+                # Remove from visited to allow same object from different paths
+                if should_remove_from_visited and visited_obj_id is not None:
+                    visited.discard(visited_obj_id)
 
         # If it's not a TOML-serializable type, warn and filter it out
         log_warning(
