@@ -35,7 +35,12 @@ def write_needscfg_file(
         srcdir: Optional source directory (defaults to app.srcdir)
     """
 
-    def get_safe_config(obj: Any, path: str = "", outpath: Path | None = None, visited: set[int] | None = None) -> Any:
+    def get_safe_config(
+        obj: Any,
+        path: str = "",
+        outpath: Path | None = None,
+        visited: set[int] | None = None,
+    ) -> Any:
         """
         Recursively walk needs config and make it TOML serialisable.
 
@@ -65,12 +70,14 @@ def write_needscfg_file(
         # Filter out None - TOML doesn't support null values
         if obj is None:
             return None
-        
+
         # Check for circular references (only for mutable objects that can contain references)
         # Skip this check for immutable types and simple types
         # We track objects in the current traversal path to detect true circular refs (A -> B -> A)
         # but allow the same object to be referenced from different paths (A -> C, B -> C)
-        if isinstance(obj, (dict, list, tuple, set)) and not isinstance(obj, (str, bytes)):
+        if isinstance(obj, (dict, list, tuple, set)) and not isinstance(
+            obj, (str, bytes)
+        ):
             obj_id = id(obj)
             if obj_id in visited:
                 log_warning(
