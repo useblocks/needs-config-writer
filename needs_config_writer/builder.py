@@ -75,9 +75,7 @@ def write_needscfg_file(
         # Skip this check for immutable types and simple types
         # We track objects in the current traversal path to detect true circular refs (A -> B -> A)
         # but allow the same object to be referenced from different paths (A -> C, B -> C)
-        if isinstance(obj, (dict, list, tuple, set)) and not isinstance(
-            obj, (str, bytes)
-        ):
+        if isinstance(obj, (dict, list, tuple, set)):
             obj_id = id(obj)
             if obj_id in visited:
                 log_warning(
@@ -91,8 +89,10 @@ def write_needscfg_file(
             visited.add(obj_id)
             # We'll remove it after processing to allow the same object from different paths
             should_remove_from_visited = True
+            visited_obj_id = obj_id
         else:
             should_remove_from_visited = False
+            visited_obj_id = None
 
         # Check if this path should be relativized based on allowlist
         should_relativize = False
@@ -221,8 +221,8 @@ def write_needscfg_file(
                 return result
             finally:
                 # Remove from visited to allow same object from different paths
-                if should_remove_from_visited:
-                    visited.discard(id(obj))
+                if should_remove_from_visited and visited_obj_id is not None:
+                    visited.discard(visited_obj_id)
 
         if isinstance(obj, (list, tuple, set)):
             try:
@@ -240,8 +240,8 @@ def write_needscfg_file(
                 return items
             finally:
                 # Remove from visited to allow same object from different paths
-                if should_remove_from_visited:
-                    visited.discard(id(obj))
+                if should_remove_from_visited and visited_obj_id is not None:
+                    visited.discard(visited_obj_id)
 
         # If it's not a TOML-serializable type, warn and filter it out
         log_warning(
